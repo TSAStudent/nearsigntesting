@@ -190,10 +190,17 @@ export default function ChatPage() {
   const handleSend = async () => {
     if (!message.trim() && draftAttachments.length === 0) return;
     const text = message.trim();
-    if (isSignyChat || !shouldUseRemoteDirectChat) {
+    try {
+      if (isSignyChat || !shouldUseRemoteDirectChat) {
+        sendMessage(chatId, text, 'text', draftAttachments);
+      } else {
+        await sendDirectMessage(chatId, participantKey, text, 'text', draftAttachments);
+      }
+    } catch (error) {
+      // Keep chat usable even if remote write fails (permissions/network/rules mismatch).
       sendMessage(chatId, text, 'text', draftAttachments);
-    } else {
-      await sendDirectMessage(chatId, participantKey, text, 'text', draftAttachments);
+      window.alert('Live sync is temporarily unavailable. Message was saved locally.');
+      console.error('Failed to send remote direct message:', error);
     }
     setMessage('');
     setDraftAttachments([]);
@@ -207,7 +214,10 @@ export default function ChatPage() {
     if (isSignyChat || !shouldUseRemoteDirectChat) {
       sendMessage(chatId, text, 'icebreaker');
     } else {
-      void sendDirectMessage(chatId, participantKey, text, 'icebreaker');
+      void sendDirectMessage(chatId, participantKey, text, 'icebreaker').catch((error) => {
+        sendMessage(chatId, text, 'icebreaker');
+        console.error('Failed to send remote icebreaker:', error);
+      });
     }
     setShowIcebreakers(false);
   };
@@ -216,7 +226,15 @@ export default function ChatPage() {
     if (isSignyChat || !shouldUseRemoteDirectChat) {
       sendMessage(chatId, "Hey! Want to plan a hangout? What works for you?", 'hangout_request');
     } else {
-      void sendDirectMessage(chatId, participantKey, "Hey! Want to plan a hangout? What works for you?", 'hangout_request');
+      void sendDirectMessage(
+        chatId,
+        participantKey,
+        "Hey! Want to plan a hangout? What works for you?",
+        'hangout_request'
+      ).catch((error) => {
+        sendMessage(chatId, "Hey! Want to plan a hangout? What works for you?", 'hangout_request');
+        console.error('Failed to send remote hangout request:', error);
+      });
     }
   };
 
