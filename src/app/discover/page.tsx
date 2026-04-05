@@ -202,6 +202,7 @@ export default function DiscoverPage() {
                 ? 'bg-[color:var(--surface-header)] backdrop-blur-xl border-b border-sky-200/45 shadow-sm'
                 : 'bg-[color:var(--background)]'
           }`}
+          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)' }}
         >
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">

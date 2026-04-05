@@ -92,9 +92,10 @@ export default function ProfilePage() {
       >
         {/* Header */}
         <div
-          className="px-6 pt-6 pb-16 relative"
+          className="px-6 pb-16 relative"
           style={{
             backgroundImage: 'linear-gradient(to bottom right, var(--color-primary), var(--color-primary-light))',
+            paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)',
           }}
         >
           <div className="flex items-center justify-between mb-6">
