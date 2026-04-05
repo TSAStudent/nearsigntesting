@@ -1,0 +1,136 @@
+@import "tailwindcss";
+
+:root {
+  /* NearSign professional palette — calm sky blue, high readability */
+  --background: #fafafa;
+  --foreground: #1e293b;
+  --font-scale: 1;
+  --color-primary: #0369a1;
+  --color-primary-rgb: 3, 105, 161;
+  --color-primary-light: #7dd3fc;
+  --color-primary-dark: #075985;
+  --color-secondary: #64748b;
+  --color-accent: #0ea5e9;
+
+  /* Light app wash: subtle blue progression with minimal saturation spikes */
+  --gradient-app: linear-gradient(
+    152deg,
+    #f8fafc 0%,
+    #f1f7ff 14%,
+    #e8f3ff 30%,
+    #deefff 46%,
+    #d4ebff 62%,
+    #d8efff 78%,
+    #e6f3ff 100%
+  );
+
+  /* Full-page / splash / 404: adds soft center lift */
+  --gradient-brand:
+    radial-gradient(ellipse 100% 70% at 50% -8%, rgba(255, 255, 255, 0.56), transparent 58%),
+    var(--gradient-app);
+
+  /* Overlays / glass: translucent and neutral-professional */
+  --gradient-brand-soft: linear-gradient(
+    152deg,
+    rgba(248, 250, 252, 0.95) 0%,
+    rgba(239, 246, 255, 0.78) 34%,
+    rgba(219, 234, 254, 0.62) 70%,
+    rgba(186, 230, 253, 0.52) 100%
+  );
+
+  /* CTAs / selected controls */
+  --gradient-brand-accent: linear-gradient(
+    135deg,
+    #075985 0%,
+    #0369a1 36%,
+    #0284c7 72%,
+    #0ea5e9 100%
+  );
+
+  /* Phone bezel (desktop): richer blue for visual framing */
+  --gradient-mobile-shell-outer: linear-gradient(
+    152deg,
+    #0f172a 0%,
+    #0c4a6e 28%,
+    #0369a1 56%,
+    #0284c7 82%,
+    #075985 100%
+  );
+
+  /* Inner screen = default app background (Discover, Chat, Profile, Onboarding, …) */
+  --gradient-mobile-shell-inner: var(--gradient-app);
+
+  --surface-glass: rgba(255, 255, 255, 0.82);
+  --surface-glass-border: rgba(125, 211, 252, 0.36);
+  --surface-header: rgba(255, 255, 255, 0.74);
+}
+
+/* Default in-app / framed surface */
+.bg-app-theme {
+  background-color: #e0f2fe;
+  background-image: var(--gradient-app);
+}
+
+/* Full-bleed marketing / auth / 404 */
+.bg-brand-gradient {
+  background-color: #e0f2fe;
+  background-image: var(--gradient-brand);
+}
+
+.bg-brand-gradient-soft {
+  background-image: var(--gradient-brand-soft);
+}
+
+/* CTAs / selected chips */
+.bg-brand-gradient-accent {
+  background-image: var(--gradient-brand-accent);
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(15, 23, 42, 0.25);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 4px 14px rgba(3, 105, 161, 0.34);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-size: calc(16px * var(--font-scale));
+  line-height: calc(1.5 * var(--font-scale));
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar {
+  width: 3px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(var(--color-primary-rgb), 0.25);
+  border-radius: 10px;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+*:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
