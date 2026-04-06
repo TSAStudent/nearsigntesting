@@ -898,10 +898,7 @@ export default function OnboardingPage() {
     <MobileFrame>
       <div className="flex flex-col min-h-full bg-transparent">
         {/* Header */}
-        <div
-          className="px-6 pb-2"
-          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)' }}
-        >
+        <div className="px-6 pt-4 pb-2">
           <div className="flex items-center justify-between mb-4">
             <Sparkles className="text-sky-700" size={24} />
             <span className="text-sm font-semibold text-gray-500">
@@ -936,14 +933,7 @@ export default function OnboardingPage() {
         </div>
 
         {/* Navigation buttons */}
-        <div
-          className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-sm px-6 py-4 bg-[color:var(--surface-glass)] backdrop-blur-xl border-t border-sky-200/40 shadow-[0_-1px_0_0_rgba(3,105,161,0.10)]"
-          style={{
-            borderBottomLeftRadius: '2.5rem',
-            borderBottomRightRadius: '2.5rem',
-            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)',
-          }}
-        >
+        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-sm px-6 py-4 pb-8 bg-[color:var(--surface-glass)] backdrop-blur-xl border-t border-sky-200/40 shadow-[0_-1px_0_0_rgba(3,105,161,0.10)]" style={{ borderBottomLeftRadius: '2.5rem', borderBottomRightRadius: '2.5rem' }}>
           <div className="flex gap-3">
             {step > 0 && (
               <button

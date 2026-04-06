@@ -31,10 +31,7 @@ export default function BottomNav() {
       }`}
       style={{ borderBottomLeftRadius: '2.5rem', borderBottomRightRadius: '2.5rem' }}
     >
-      <div
-        className="flex items-center justify-around px-2 py-2"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.5rem)' }}
-      >
+      <div className="flex items-center justify-around px-2 py-2 pb-6">
         {NAV_ITEMS.map((item) => {
           const isActive =
             pathname.startsWith(item.path) ||
