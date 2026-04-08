@@ -12,6 +12,8 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { getDiscoverProfileForViewer } from '@/lib/discoverProfiles';
 import type { DiscoverProfile } from '@/types';
 import { buildGroupInviteMessage, findMatchChatId, pickProfileAwareIcebreaker } from '@/lib/matchActions';
+import { isFirebaseConfigured } from '@/lib/firebase';
+import { getParticipantKey, sendDirectMessage } from '@/lib/chatSync';
 
 export default function UserProfilePage() {
   const params = useParams();
@@ -71,36 +73,90 @@ export default function UserProfilePage() {
 
   const handleSayHi = () => {
     if (!matchProfile) return;
-    const chatId = findMatchChatId(useStore.getState().chats, matchProfile);
-    if (chatId) {
-      useStore.getState().sendMessage(chatId, 'hi');
+    void (async () => {
+      const state = useStore.getState();
+      const chatId = findMatchChatId(state.chats, matchProfile);
+      if (!chatId) return;
+      const chat = state.chats.find((c) => c.id === chatId);
+      if (isFirebaseConfigured && currentUser) {
+        try {
+          await sendDirectMessage(
+            chatId,
+            getParticipantKey(currentUser.email, currentUser.id),
+            'hi',
+            'text',
+            [],
+            chat?.participants || []
+          );
+        } catch {
+          state.sendMessage(chatId, 'hi');
+        }
+      } else {
+        state.sendMessage(chatId, 'hi');
+      }
       setMatchProfile(null);
       router.push(`/chat/${chatId}`);
-    }
+    })();
   };
 
   const handleIcebreaker = () => {
     if (!currentUser) return;
     if (!matchProfile) return;
-    const chatId = findMatchChatId(useStore.getState().chats, matchProfile);
-    if (chatId) {
+    void (async () => {
+      const state = useStore.getState();
+      const chatId = findMatchChatId(state.chats, matchProfile);
+      if (!chatId) return;
+      const chat = state.chats.find((c) => c.id === chatId);
       const icebreaker = pickProfileAwareIcebreaker(currentUser, matchProfile);
-      useStore.getState().sendMessage(chatId, icebreaker, 'icebreaker');
+      if (isFirebaseConfigured) {
+        try {
+          await sendDirectMessage(
+            chatId,
+            getParticipantKey(currentUser.email, currentUser.id),
+            icebreaker,
+            'icebreaker',
+            [],
+            chat?.participants || []
+          );
+        } catch {
+          state.sendMessage(chatId, icebreaker, 'icebreaker');
+        }
+      } else {
+        state.sendMessage(chatId, icebreaker, 'icebreaker');
+      }
       setMatchProfile(null);
       router.push(`/chat/${chatId}`);
-    }
+    })();
   };
 
   const handleInviteToGroup = () => {
     if (!currentUser) return;
     if (!matchProfile) return;
-    const chatId = findMatchChatId(useStore.getState().chats, matchProfile);
-    if (chatId) {
+    void (async () => {
+      const state = useStore.getState();
+      const chatId = findMatchChatId(state.chats, matchProfile);
+      if (!chatId) return;
+      const chat = state.chats.find((c) => c.id === chatId);
       const inviteText = buildGroupInviteMessage(groups, currentUser);
-      useStore.getState().sendMessage(chatId, inviteText);
+      if (isFirebaseConfigured) {
+        try {
+          await sendDirectMessage(
+            chatId,
+            getParticipantKey(currentUser.email, currentUser.id),
+            inviteText,
+            'text',
+            [],
+            chat?.participants || []
+          );
+        } catch {
+          state.sendMessage(chatId, inviteText);
+        }
+      } else {
+        state.sendMessage(chatId, inviteText);
+      }
       setMatchProfile(null);
       router.push(`/chat/${chatId}`);
-    }
+    })();
   };
 
   if (!currentUser) return null;
