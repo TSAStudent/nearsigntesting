@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { signIn } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Mail, Ear, HandMetal, UserPlus, LogIn, Lock, ShieldCheck } from 'lucide-react';
@@ -17,7 +18,8 @@ import { firebaseAuth } from '@/lib/firebase';
 
 export default function SplashPage() {
   const router = useRouter();
-  const { currentUser, loadFromStorage } = useStore();
+  const { data: session } = useSession();
+  const { currentUser, onboardingDraft, loadFromStorage } = useStore();
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [isCreateAccount, setIsCreateAccount] = useState(true); // true = Create account, false = Sign in
   const [email, setEmail] = useState('');
@@ -32,6 +34,18 @@ export default function SplashPage() {
   React.useEffect(() => {
     loadFromStorage();
   }, [loadFromStorage]);
+
+  // If an authenticated user returns mid-onboarding, always resume onboarding.
+  React.useEffect(() => {
+    if (!session?.user?.email) return;
+    if (currentUser?.onboardingComplete) {
+      router.push('/discover');
+      return;
+    }
+    if (onboardingDraft || currentUser) {
+      router.push('/onboarding');
+    }
+  }, [session?.user?.email, currentUser, onboardingDraft, router]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
