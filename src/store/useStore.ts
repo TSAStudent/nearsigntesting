@@ -411,7 +411,12 @@ const useStore = create<AppState>((set, get) => ({
     if (!currentUser) return;
     set((state) => ({
       groups: state.groups.map((g) =>
-        g.id === groupId ? { ...g, members: [...g.members, currentUser.id] } : g
+        g.id === groupId
+          ? {
+              ...g,
+              members: g.members.includes(currentUser.id) ? g.members : [...g.members, currentUser.id],
+            }
+          : g
       ),
     }));
     get().saveToStorage();
@@ -431,6 +436,8 @@ const useStore = create<AppState>((set, get) => ({
   sendGroupMessage: (groupId, content) => {
     const currentUser = get().currentUser;
     if (!currentUser) return;
+    const group = get().groups.find((g) => g.id === groupId);
+    if (!group || !group.members.includes(currentUser.id)) return;
     const message: GroupMessage = {
       id: uuidv4(),
       groupId,

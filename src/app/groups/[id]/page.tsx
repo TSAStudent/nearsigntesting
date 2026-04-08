@@ -14,7 +14,7 @@ export default function GroupChatPage() {
   const params = useParams();
   const groupId = params.id as string;
   const {
-    currentUser, groups, groupMessages, sendGroupMessage,
+    currentUser, groups, groupMessages, sendGroupMessage, joinGroup,
     loadFromStorage, highContrastMode
   } = useStore();
   const { isWarmGradient } = useAppTheme();
@@ -48,6 +48,7 @@ export default function GroupChatPage() {
   }
 
   const messages = groupMessages[groupId] || [];
+  const isMember = group.members.includes(currentUser.id);
 
   const getSenderName = (senderId: string) => {
     if (senderId === currentUser.id) return 'You';
@@ -55,7 +56,15 @@ export default function GroupChatPage() {
     return profile?.name || 'Unknown';
   };
 
+  const getOrganizerName = () => {
+    const organizerId = group.admins[0] || '';
+    if (organizerId === currentUser.id) return 'You';
+    const profile = SEED_PROFILES.find((p) => p.id === organizerId);
+    return profile?.name || organizerId || 'Unknown';
+  };
+
   const handleSend = () => {
+    if (!isMember) return;
     if (!message.trim()) return;
     sendGroupMessage(groupId, message.trim());
     setMessage('');
@@ -110,6 +119,12 @@ export default function GroupChatPage() {
           }`}>
             <p className={`text-xs mb-2 ${highContrastMode ? 'text-gray-400' : 'text-gray-600'}`}>
               {group.description}
+            </p>
+            <p className={`text-xs mb-2 ${highContrastMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Organizer: <span className="font-semibold">{getOrganizerName()}</span>
+            </p>
+            <p className={`text-xs mb-2 ${highContrastMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Members: <span className="font-semibold">{group.members.length}</span>
             </p>
             <div className="flex flex-wrap gap-1 mb-2">
               {group.tags.map((tag) => (
@@ -206,6 +221,25 @@ export default function GroupChatPage() {
           <div ref={messagesEndRef} />
         </div>
 
+        {!isMember && (
+          <div className={`mx-4 mb-2 px-4 py-3 rounded-2xl ${
+            highContrastMode ? 'bg-gray-900 border border-yellow-400/30' : 'bg-purple-50 border border-purple-100'
+          }`}>
+            <p className={`text-xs mb-2 ${highContrastMode ? 'text-gray-300' : 'text-purple-700'}`}>
+              Join this group to send messages.
+            </p>
+            <button
+              type="button"
+              onClick={() => joinGroup(groupId)}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold ${
+                highContrastMode ? 'bg-yellow-400 text-black' : 'bg-purple-500 text-white'
+              }`}
+            >
+              {group.type === 'request_to_join' ? 'Request to Join' : 'Join Group'}
+            </button>
+          </div>
+        )}
+
         {/* Input */}
         <div
           className={`px-4 py-3 pb-8 border-t ${
@@ -222,7 +256,8 @@ export default function GroupChatPage() {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Message the group..."
+              placeholder={isMember ? 'Message the group...' : 'Join this group to message'}
+              disabled={!isMember}
               className={`flex-1 py-3 px-4 rounded-2xl text-sm ${
                 highContrastMode
                   ? 'bg-gray-800 text-yellow-100 border border-yellow-400/30 placeholder-gray-600'
@@ -231,9 +266,9 @@ export default function GroupChatPage() {
             />
             <button
               onClick={handleSend}
-              disabled={!message.trim()}
+              disabled={!isMember || !message.trim()}
               className={`p-3 rounded-2xl transition-all ${
-                message.trim()
+                isMember && message.trim()
                   ? highContrastMode
                     ? 'bg-yellow-400 text-black'
                     : 'bg-purple-500 text-white'

@@ -8,7 +8,7 @@ import MobileFrame from '@/components/MobileFrame';
 import BottomNav from '@/components/BottomNav';
 import useStore from '@/store/useStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { SEED_GROUPS } from '@/lib/seedData';
+import { SEED_GROUPS, SEED_PROFILES } from '@/lib/seedData';
 import { INTEREST_OPTIONS } from '@/types';
 
 export default function GroupsPage() {
@@ -42,17 +42,18 @@ export default function GroupsPage() {
     // Seed groups if empty
     if (groups.length === 0) {
       const store = useStore.getState();
-      SEED_GROUPS.forEach((g) => {
-        store.createGroup({
-          name: g.name,
-          description: g.description,
-          city: g.city,
-          tags: g.tags,
-          rules: g.rules,
-          type: g.type,
-          avatar: g.avatar,
-        });
+      useStore.setState({
+        groups: SEED_GROUPS.map((g) => ({
+          ...g,
+          tags: [...g.tags],
+          rules: [...g.rules],
+          members: [...g.members],
+          admins: [...g.admins],
+          pinnedPosts: [...g.pinnedPosts],
+        })),
+        groupMessages: Object.fromEntries(SEED_GROUPS.map((g) => [g.id, []])),
       });
+      void store.saveToStorage();
     }
   }, [currentUser, router, groups.length]);
 
@@ -66,6 +67,14 @@ export default function GroupsPage() {
     listFilter === 'mine'
       ? searchFiltered.filter((g) => g.members.includes(currentUser.id))
       : searchFiltered;
+
+  const getOrganizerName = (group: (typeof groups)[number]) => {
+    const organizerId = group.admins[0] || '';
+    if (organizerId === currentUser.id) return 'You';
+    const organizer = SEED_PROFILES.find((p) => p.id === organizerId);
+    if (organizer) return organizer.name;
+    return organizerId || 'Unknown';
+  };
 
   const handleCreateGroup = () => {
     if (!newGroup.name || !newGroup.description) return;
@@ -224,10 +233,17 @@ export default function GroupsPage() {
                           </span>
                         ))}
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className={`text-xs ${highContrastMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                          {group.members.length} members
-                        </span>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <span className={`text-xs block ${highContrastMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                            {group.members.length} members
+                          </span>
+                          {isMember && (
+                            <span className={`text-[10px] block truncate ${highContrastMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                              Organizer: {getOrganizerName(group)}
+                            </span>
+                          )}
+                        </div>
                         {isMember ? (
                           <button
                             onClick={() => router.push(`/groups/${group.id}`)}
@@ -241,7 +257,10 @@ export default function GroupsPage() {
                           </button>
                         ) : (
                           <button
-                            onClick={() => joinGroup(group.id)}
+                            onClick={() => {
+                              joinGroup(group.id);
+                              setListFilter('mine');
+                            }}
                             className={`px-4 py-1.5 rounded-xl text-xs font-semibold ${
                               highContrastMode
                                 ? 'bg-yellow-400 text-black'
