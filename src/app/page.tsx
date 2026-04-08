@@ -4,9 +4,16 @@ import React, { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Mail, Ear, HandMetal, UserPlus, LogIn } from 'lucide-react';
+import { Mail, Ear, HandMetal, UserPlus, LogIn, Lock, ShieldCheck } from 'lucide-react';
 import MobileFrame from '@/components/MobileFrame';
 import useStore from '@/store/useStore';
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+  signOut as signOutFirebase,
+  updateProfile,
+} from 'firebase/auth';
+import { firebaseAuth } from '@/lib/firebase';
 
 export default function SplashPage() {
   const router = useRouter();
@@ -15,6 +22,11 @@ export default function SplashPage() {
   const [isCreateAccount, setIsCreateAccount] = useState(true); // true = Create account, false = Sign in
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [authMessage, setAuthMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   // Load stored profile on mount (no redirect — user must choose an option)
   React.useEffect(() => {
@@ -23,17 +35,81 @@ export default function SplashPage() {
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
-    await signIn('credentials', {
-      email,
-      name: name || email.split('@')[0],
-      redirect: false,
-    });
-    // Always go to onboarding; it will redirect to discover if user already has a complete profile
-    router.push('/onboarding');
+    setAuthError('');
+    setAuthMessage('');
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const safeName = name.trim() || normalizedEmail.split('@')[0];
+    if (!normalizedEmail || !password) return;
+
+    if (isCreateAccount) {
+      if (!firebaseAuth) {
+        setAuthError('Email auth is currently unavailable. Please use Google sign-in.');
+        return;
+      }
+      if (password.length < 8) {
+        setAuthError('Password must be at least 8 characters.');
+        return;
+      }
+      if (password !== confirmPassword) {
+        setAuthError('Passwords do not match.');
+        return;
+      }
+
+      setSubmitting(true);
+      try {
+        const cred = await createUserWithEmailAndPassword(firebaseAuth, normalizedEmail, password);
+        if (safeName) {
+          await updateProfile(cred.user, { displayName: safeName });
+        }
+        await sendEmailVerification(cred.user);
+        await signOutFirebase(firebaseAuth);
+        setAuthMessage('Verification email sent. Verify your email, then sign in.');
+        setIsCreateAccount(false);
+        setPassword('');
+        setConfirmPassword('');
+      } catch (error) {
+        const code = (error as { code?: string })?.code || '';
+        if (code.includes('email-already-in-use')) {
+          setAuthError('This email is already registered. Try signing in.');
+        } else if (code.includes('invalid-email')) {
+          setAuthError('Please enter a valid email address.');
+        } else if (code.includes('weak-password')) {
+          setAuthError('Password is too weak. Use at least 8 characters.');
+        } else {
+          setAuthError('Could not create account. Please try again.');
+        }
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const result = await signIn('credentials', {
+        email: normalizedEmail,
+        password,
+        name: safeName,
+        redirect: false,
+      });
+
+      if (result?.ok) {
+        router.push('/onboarding');
+        return;
+      }
+
+      setAuthError('Sign-in failed. Check your email/password and verify your email first.');
+    } catch {
+      setAuthError('Sign-in failed. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleGoogleLogin = (createAccount: boolean) => {
+    setAuthError('');
+    setAuthMessage('');
     signIn('google', { callbackUrl: '/onboarding' });
   };
 
@@ -101,7 +177,11 @@ export default function SplashPage() {
               <div className="flex rounded-2xl bg-white/50 border border-sky-200/60 p-1 gap-1 mb-3 shadow-sm">
                 <button
                   type="button"
-                  onClick={() => setIsCreateAccount(true)}
+                  onClick={() => {
+                    setIsCreateAccount(true);
+                    setAuthError('');
+                    setAuthMessage('');
+                  }}
                   className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${isCreateAccount ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
                     }`}
                 >
@@ -109,7 +189,11 @@ export default function SplashPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsCreateAccount(false)}
+                  onClick={() => {
+                    setIsCreateAccount(false);
+                    setAuthError('');
+                    setAuthMessage('');
+                  }}
                   className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${!isCreateAccount ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
                     }`}
                 >
@@ -139,6 +223,17 @@ export default function SplashPage() {
             </>
           ) : (
             <form onSubmit={handleEmailLogin} className="space-y-3">
+              {authMessage && (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 flex items-start gap-2">
+                  <ShieldCheck size={16} className="mt-0.5 shrink-0" />
+                  <span>{authMessage}</span>
+                </div>
+              )}
+              {authError && (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                  {authError}
+                </div>
+              )}
               <input
                 type="text"
                 value={name}
@@ -154,25 +249,60 @@ export default function SplashPage() {
                 required
                 className="w-full py-3.5 px-5 bg-white/90 backdrop-blur-sm border border-sky-200/80 rounded-2xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-300/60"
               />
+              <div className="relative">
+                <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password"
+                  required
+                  minLength={8}
+                  className="w-full py-3.5 pl-10 pr-5 bg-white/90 backdrop-blur-sm border border-sky-200/80 rounded-2xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-300/60"
+                />
+              </div>
+              {isCreateAccount && (
+                <div className="relative">
+                  <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm password"
+                    required
+                    minLength={8}
+                    className="w-full py-3.5 pl-10 pr-5 bg-white/90 backdrop-blur-sm border border-sky-200/80 rounded-2xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-300/60"
+                  />
+                </div>
+              )}
               <button
                 type="submit"
+                disabled={submitting}
                 className="w-full py-4 px-6 bg-brand-gradient-accent rounded-2xl font-semibold text-white border border-white/25 shadow-md hover:brightness-[1.08] transition-all hover:scale-[1.01] active:scale-[0.98]"
               >
-                {isCreateAccount ? (
-                  <>
-                    <UserPlus size={20} className="inline mr-2" />
-                    Create account
-                  </>
-                ) : (
-                  <>
-                    <LogIn size={20} className="inline mr-2" />
-                    Sign in
-                  </>
-                )}
+                {submitting
+                  ? 'Please wait...'
+                  : isCreateAccount
+                    ? (
+                      <>
+                        <UserPlus size={20} className="inline mr-2" />
+                        Create account
+                      </>
+                    )
+                    : (
+                      <>
+                        <LogIn size={20} className="inline mr-2" />
+                        Sign in
+                      </>
+                    )}
               </button>
               <button
                 type="button"
-                onClick={() => setShowEmailForm(false)}
+                onClick={() => {
+                  setShowEmailForm(false);
+                  setAuthError('');
+                  setAuthMessage('');
+                }}
                 className="w-full py-2 text-slate-500 text-sm hover:text-sky-800 transition-colors"
               >
                 Back to options
