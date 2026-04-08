@@ -49,24 +49,21 @@ export default function EventsPage() {
     // Seed events if empty
     if (events.length === 0) {
       const store = useStore.getState();
-      SEED_EVENTS.forEach((e) => {
-        store.createEvent({
-          title: e.title,
-          description: e.description,
-          location: e.location,
-          date: e.date,
-          time: e.time,
-          tags: e.tags,
-          communicationSupport: e.communicationSupport,
-        });
+      useStore.setState({
+        events: SEED_EVENTS.map((e) => ({
+          ...e,
+          tags: [...e.tags],
+          rsvps: [...e.rsvps],
+        })),
       });
+      void store.saveToStorage();
     }
   }, [currentUser, router, events.length]);
 
   if (!currentUser) return null;
 
   const isMyEvent = (event: (typeof events)[number]) =>
-    event.organizerId === currentUser.id || event.rsvps.includes(currentUser.id);
+    event.rsvps.includes(currentUser.id);
 
   const filteredEvents =
     listFilter === 'mine' ? events.filter(isMyEvent) : events;

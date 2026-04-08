@@ -220,6 +220,15 @@ export default function ProfilePage() {
                   {avatarError}
                 </p>
               )}
+              {currentUser.avatar && (
+                <button
+                  type="button"
+                  onClick={() => updateCurrentUser({ avatar: '' })}
+                  className="text-xs mt-1 font-semibold text-sky-700 hover:text-sky-900 transition-colors"
+                >
+                  Remove photo
+                </button>
+              )}
             </div>
           </div>
         </div>
