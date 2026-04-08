@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronLeft, MapPin, Shield, Sparkles, Check } from 'lucide-react';
@@ -410,6 +411,13 @@ export default function OnboardingPage() {
     router.push('/discover');
   };
 
+  const handleBackToAuth = async () => {
+    clearOnboardingDraft();
+    setCurrentUser(null);
+    await signOut({ redirect: false });
+    router.push('/');
+  };
+
   const renderStep = () => {
     switch (step) {
       case 0:
@@ -417,7 +425,7 @@ export default function OnboardingPage() {
           <div className="space-y-5">
             <button
               type="button"
-              onClick={() => router.push('/')}
+              onClick={handleBackToAuth}
               className="text-xs font-semibold text-sky-700 hover:text-sky-900 transition-colors"
             >
               Back to login / sign in

@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Mail, Ear, HandMetal, UserPlus, LogIn, Lock, ShieldCheck } from 'lucide-react';
@@ -45,8 +44,7 @@ async function firebaseRequest<T>(endpoint: string, body: Record<string, unknown
 
 export default function SplashPage() {
   const router = useRouter();
-  const { data: session } = useSession();
-  const { currentUser, onboardingDraft, loadFromStorage } = useStore();
+  const { loadFromStorage } = useStore();
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [isCreateAccount, setIsCreateAccount] = useState(true); // true = Create account, false = Sign in
   const [email, setEmail] = useState('');
@@ -62,17 +60,8 @@ export default function SplashPage() {
     loadFromStorage();
   }, [loadFromStorage]);
 
-  // If an authenticated user returns mid-onboarding, always resume onboarding.
-  React.useEffect(() => {
-    if (!session?.user?.email) return;
-    if (currentUser?.onboardingComplete) {
-      router.push('/discover');
-      return;
-    }
-    if (onboardingDraft || currentUser) {
-      router.push('/onboarding');
-    }
-  }, [session?.user?.email, currentUser, onboardingDraft, router]);
+  // Intentionally do not auto-redirect from splash.
+  // Users should always land on sign in/sign up first.
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
