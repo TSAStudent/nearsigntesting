@@ -194,7 +194,8 @@ export async function sendDirectMessage(
   senderId: string,
   content: string,
   type: ChatMessage['type'] = 'text',
-  attachments: ChatAttachment[] = []
+  attachments: ChatAttachment[] = [],
+  participants: string[] = []
 ): Promise<void> {
   if (!isFirebaseConfigured || !firestore) return;
 
@@ -214,6 +215,9 @@ export async function sendDirectMessage(
   await setDoc(
     doc(firestore, DIRECT_CHATS_COLLECTION, chatId),
     {
+      ...(participants.length > 0
+        ? { participants: [...new Set(participants.map(normalizeParticipant))].sort() }
+        : {}),
       updatedAt: now,
       lastMessagePreview: safeContent,
     },

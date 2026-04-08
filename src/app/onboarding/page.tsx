@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, ChevronLeft, MapPin, Shield, Sparkles } from 'lucide-react';
+import { ChevronRight, ChevronLeft, MapPin, Shield, Sparkles, Check } from 'lucide-react';
 import MobileFrame from '@/components/MobileFrame';
 import useStore from '@/store/useStore';
 import type {
@@ -535,11 +535,16 @@ export default function OnboardingPage() {
                   <button
                     key={pref}
                     onClick={() => toggleComfort(pref)}
-                    className={`p-3 rounded-xl text-xs font-medium transition-all ${comfortPrefs.includes(pref)
-                      ? 'bg-sky-50 text-sky-900 border-2 border-sky-200/70'
+                    className={`relative p-3 rounded-xl text-xs font-medium transition-all ${comfortPrefs.includes(pref)
+                      ? 'bg-brand-gradient-accent text-white border border-white/30 shadow-md'
                       : 'bg-gray-50 text-gray-600 border-2 border-transparent'
                       }`}
                   >
+                    {comfortPrefs.includes(pref) && (
+                      <span className="absolute right-2 top-2">
+                        <Check size={14} />
+                      </span>
+                    )}
                     {COMFORT_LABELS[pref]}
                   </button>
                 ))}

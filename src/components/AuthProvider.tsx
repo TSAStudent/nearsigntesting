@@ -26,6 +26,8 @@ function StoreSessionSync() {
   useEffect(() => {
     if (status === 'unauthenticated') {
       setStorageOwner(null);
+      // Prevent stale per-user theming/profile data from leaking onto splash.
+      useStore.setState({ currentUser: null });
     }
   }, [status, setStorageOwner]);
 

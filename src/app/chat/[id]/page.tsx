@@ -132,6 +132,10 @@ export default function ChatPage() {
     : chat?.participants || [];
 
   const otherId = participants.find((id) => id !== participantKey && id !== currentUser.id);
+  const remoteParticipants =
+    participants.length > 0
+      ? participants
+      : [participantKey, ...(otherId ? [otherId] : [])];
   const isSignyChat = otherId === 'signy-assistant';
   const profileLookup = new Map<string, UserProfile>();
   publicProfiles.forEach((profile) => {
@@ -194,7 +198,7 @@ export default function ChatPage() {
       if (isSignyChat || !shouldUseRemoteDirectChat) {
         sendMessage(chatId, text, 'text', draftAttachments);
       } else {
-        await sendDirectMessage(chatId, participantKey, text, 'text', draftAttachments);
+        await sendDirectMessage(chatId, participantKey, text, 'text', draftAttachments, remoteParticipants);
       }
     } catch (error) {
       // Keep chat usable even if remote write fails (permissions/network/rules mismatch).
@@ -214,7 +218,7 @@ export default function ChatPage() {
     if (isSignyChat || !shouldUseRemoteDirectChat) {
       sendMessage(chatId, text, 'icebreaker');
     } else {
-      void sendDirectMessage(chatId, participantKey, text, 'icebreaker').catch((error) => {
+      void sendDirectMessage(chatId, participantKey, text, 'icebreaker', [], remoteParticipants).catch((error) => {
         sendMessage(chatId, text, 'icebreaker');
         console.error('Failed to send remote icebreaker:', error);
       });
@@ -230,7 +234,9 @@ export default function ChatPage() {
         chatId,
         participantKey,
         "Hey! Want to plan a hangout? What works for you?",
-        'hangout_request'
+        'hangout_request',
+        [],
+        remoteParticipants
       ).catch((error) => {
         sendMessage(chatId, "Hey! Want to plan a hangout? What works for you?", 'hangout_request');
         console.error('Failed to send remote hangout request:', error);
