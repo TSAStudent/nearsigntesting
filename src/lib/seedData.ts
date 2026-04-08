@@ -536,6 +536,74 @@ export const SEED_PROFILES: DiscoverProfile[] = [
   },
 ];
 
+const EXTRA_GROUP_NAMES = [
+  'Weekend Social Circle',
+  'Quiet Hangout Crew',
+  'Game Night Crew',
+  'Movie and Caption Club',
+  'STEM Builders Hub',
+  'Art and Sketch Collective',
+  'After School Meetup Board',
+  'Photography Walk Team',
+  'Cooking and Snacks Club',
+  'Fitness and Wellness Crew',
+  'Anime and Fandom House',
+  'Travel Dreamers Circle',
+  'Homework Help Collective',
+  'Robotics Lab Partners',
+  'Writers Room',
+  'Weekend Adventure Squad',
+  'Science Explorer Club',
+  'Board Games and Brunch',
+  'Creative Coding Circle',
+  'Reading Corner',
+  'Nature Walk Group',
+  'Music Sharing Lounge',
+  'Volunteer Action Team',
+  'Design and Craft Studio',
+  'Sports and Chill Hub',
+] as const;
+
+const EXTRA_GROUP_MEMBER_COUNTS = [
+  26, 18, 34, 22, 31, 27, 40, 19, 36, 29, 45, 24, 33, 21, 17, 38, 28, 32, 20, 16, 35, 23, 41, 25, 30,
+] as const;
+
+const EXTRA_GROUP_CITIES = [
+  'Dallas, TX',
+  'Fort Worth, TX',
+  'Plano, TX',
+  'Arlington, TX',
+  'Irving, TX',
+  'Richardson, TX',
+  'Garland, TX',
+  'Carrollton, TX',
+] as const;
+
+const EXTRA_GROUP_ADMINS = [
+  'user-1',
+  'user-2',
+  'user-3',
+  'user-4',
+  'user-5',
+  'user-6',
+  'user-7',
+  'user-8',
+  'user-9',
+  'user-10',
+  'user-11',
+  'user-12',
+  'user-13',
+  'user-14',
+] as const;
+
+function buildGroupMembers(groupId: string, adminId: string, memberCount: number): string[] {
+  const members = [adminId];
+  for (let i = 1; i < memberCount; i += 1) {
+    members.push(`${groupId}-member-${i}`);
+  }
+  return members;
+}
+
 export const SEED_GROUPS: Group[] = [
   {
     id: 'group-1',
@@ -591,6 +659,26 @@ export const SEED_GROUPS: Group[] = [
     avatar: '',
     createdAt: '2024-02-15T10:00:00Z',
   },
+  ...EXTRA_GROUP_NAMES.map((name, index) => {
+    const groupId = `group-${index + 4}`;
+    const adminId = EXTRA_GROUP_ADMINS[index % EXTRA_GROUP_ADMINS.length];
+    const memberCount = EXTRA_GROUP_MEMBER_COUNTS[index];
+    const city = EXTRA_GROUP_CITIES[index % EXTRA_GROUP_CITIES.length];
+    return {
+      id: groupId,
+      name,
+      description: `Community group for ${name.toLowerCase()} with friendly chat and local meetups.`,
+      city,
+      tags: ['Social', 'Community', index % 2 === 0 ? 'Meetups' : 'Casual'],
+      rules: ['Be respectful', 'No bullying', 'Include everyone', 'Keep chats constructive'],
+      type: index % 4 === 0 ? 'request_to_join' : 'public',
+      members: buildGroupMembers(groupId, adminId, memberCount),
+      admins: [adminId],
+      pinnedPosts: [],
+      avatar: '',
+      createdAt: `2024-04-${String(index + 1).padStart(2, '0')}T10:00:00Z`,
+    } satisfies Group;
+  }),
 ];
 
 export const SEED_EVENTS: Event[] = [
