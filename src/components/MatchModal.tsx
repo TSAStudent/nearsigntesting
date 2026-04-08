@@ -12,6 +12,7 @@ interface MatchModalProps {
   onClose: () => void;
   onSayHi: () => void;
   onIcebreaker: () => void;
+  onInviteToGroup: () => void;
 }
 
 function Confetti() {
@@ -54,7 +55,13 @@ function Confetti() {
   );
 }
 
-export default function MatchModal({ profile, onClose, onSayHi, onIcebreaker }: MatchModalProps) {
+export default function MatchModal({
+  profile,
+  onClose,
+  onSayHi,
+  onIcebreaker,
+  onInviteToGroup,
+}: MatchModalProps) {
   const highContrastMode = useStore((s) => s.highContrastMode);
   const { isWarmGradient } = useAppTheme();
 
@@ -152,7 +159,7 @@ export default function MatchModal({ profile, onClose, onSayHi, onIcebreaker }: 
               Pick an Icebreaker
             </button>
             <button
-              onClick={onClose}
+              onClick={onInviteToGroup}
               className={`w-full py-3 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all ${
                 highContrastMode
                   ? 'text-gray-500 hover:text-gray-400'

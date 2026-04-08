@@ -11,7 +11,7 @@ import useStore from '@/store/useStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { getDiscoverProfileForViewer } from '@/lib/discoverProfiles';
 import type { DiscoverProfile } from '@/types';
-import { ICEBREAKERS } from '@/types';
+import { buildGroupInviteMessage, findMatchChatId, pickProfileAwareIcebreaker } from '@/lib/matchActions';
 
 export default function UserProfilePage() {
   const params = useParams();
@@ -28,7 +28,7 @@ export default function UserProfilePage() {
     unsaveProfile,
     highContrastMode,
     blockedUsers,
-    chats,
+    groups,
   } = useStore();
   const { isWarmGradient } = useAppTheme();
 
@@ -71,28 +71,35 @@ export default function UserProfilePage() {
 
   const handleSayHi = () => {
     if (!matchProfile) return;
-    const profileEmail = matchProfile.email.trim().toLowerCase();
-    const chat = chats.find(
-      (c) => c.participants.includes(matchProfile.id) || c.participants.includes(profileEmail)
-    );
-    if (chat) {
-      useStore.getState().sendMessage(chat.id, 'Hey! Excited to connect! 🤟');
+    const chatId = findMatchChatId(useStore.getState().chats, matchProfile);
+    if (chatId) {
+      useStore.getState().sendMessage(chatId, 'hi');
       setMatchProfile(null);
-      router.push(`/chat/${chat.id}`);
+      router.push(`/chat/${chatId}`);
     }
   };
 
   const handleIcebreaker = () => {
+    if (!currentUser) return;
     if (!matchProfile) return;
-    const profileEmail = matchProfile.email.trim().toLowerCase();
-    const chat = chats.find(
-      (c) => c.participants.includes(matchProfile.id) || c.participants.includes(profileEmail)
-    );
-    if (chat) {
-      const icebreaker = ICEBREAKERS[Math.floor(Math.random() * ICEBREAKERS.length)];
-      useStore.getState().sendMessage(chat.id, icebreaker, 'icebreaker');
+    const chatId = findMatchChatId(useStore.getState().chats, matchProfile);
+    if (chatId) {
+      const icebreaker = pickProfileAwareIcebreaker(currentUser, matchProfile);
+      useStore.getState().sendMessage(chatId, icebreaker, 'icebreaker');
       setMatchProfile(null);
-      router.push(`/chat/${chat.id}`);
+      router.push(`/chat/${chatId}`);
+    }
+  };
+
+  const handleInviteToGroup = () => {
+    if (!currentUser) return;
+    if (!matchProfile) return;
+    const chatId = findMatchChatId(useStore.getState().chats, matchProfile);
+    if (chatId) {
+      const inviteText = buildGroupInviteMessage(groups, currentUser);
+      useStore.getState().sendMessage(chatId, inviteText);
+      setMatchProfile(null);
+      router.push(`/chat/${chatId}`);
     }
   };
 
@@ -196,6 +203,7 @@ export default function UserProfilePage() {
             onClose={() => setMatchProfile(null)}
             onSayHi={handleSayHi}
             onIcebreaker={handleIcebreaker}
+            onInviteToGroup={handleInviteToGroup}
           />
         )}
 

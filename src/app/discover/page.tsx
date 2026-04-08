@@ -15,9 +15,10 @@ import { SEED_PROFILES } from '@/lib/seedData';
 import { withComputedMatchScores } from '@/lib/matchScore';
 import { calculateDistanceMiles } from '@/lib/geo';
 import type { DiscoverProfile, CommunicationPreference, UserProfile } from '@/types';
-import { COMMUNICATION_ICONS, COMMUNICATION_LABELS, IDENTITY_LABELS, ICEBREAKERS } from '@/types';
+import { COMMUNICATION_ICONS, COMMUNICATION_LABELS, IDENTITY_LABELS } from '@/types';
 import { isFirebaseConfigured } from '@/lib/firebase';
 import { subscribeToPublicUserProfiles } from '@/lib/userProfiles';
+import { buildGroupInviteMessage, findMatchChatId, pickProfileAwareIcebreaker } from '@/lib/matchActions';
 
 interface FilterState {
   distanceMax: number;
@@ -41,6 +42,7 @@ export default function DiscoverPage() {
     highContrastMode,
     discoverProfiles,
     setDiscoverProfiles,
+    groups,
   } = useStore();
   const { isWarmGradient } = useAppTheme();
 
@@ -152,30 +154,39 @@ export default function DiscoverPage() {
   const handleSayHi = () => {
     if (matchProfile) {
       const chats = useStore.getState().chats;
-      const profileEmail = matchProfile.email.trim().toLowerCase();
-      const chat = chats.find(
-        (c) => c.participants.includes(matchProfile.id) || c.participants.includes(profileEmail)
-      );
-      if (chat) {
-        useStore.getState().sendMessage(chat.id, 'Hey! Excited to connect! 🤟');
+      const chatId = findMatchChatId(chats, matchProfile);
+      if (chatId) {
+        useStore.getState().sendMessage(chatId, 'hi');
         setMatchProfile(null);
-        router.push(`/chat/${chat.id}`);
+        router.push(`/chat/${chatId}`);
       }
     }
   };
 
   const handleIcebreaker = () => {
+    if (!currentUser) return;
     if (matchProfile) {
       const chats = useStore.getState().chats;
-      const profileEmail = matchProfile.email.trim().toLowerCase();
-      const chat = chats.find(
-        (c) => c.participants.includes(matchProfile.id) || c.participants.includes(profileEmail)
-      );
-      if (chat) {
-        const icebreaker = ICEBREAKERS[Math.floor(Math.random() * ICEBREAKERS.length)];
-        useStore.getState().sendMessage(chat.id, icebreaker, 'icebreaker');
+      const chatId = findMatchChatId(chats, matchProfile);
+      if (chatId) {
+        const icebreaker = pickProfileAwareIcebreaker(currentUser, matchProfile);
+        useStore.getState().sendMessage(chatId, icebreaker, 'icebreaker');
         setMatchProfile(null);
-        router.push(`/chat/${chat.id}`);
+        router.push(`/chat/${chatId}`);
+      }
+    }
+  };
+
+  const handleInviteToGroup = () => {
+    if (!currentUser) return;
+    if (matchProfile) {
+      const chats = useStore.getState().chats;
+      const chatId = findMatchChatId(chats, matchProfile);
+      if (chatId) {
+        const inviteText = buildGroupInviteMessage(groups, currentUser);
+        useStore.getState().sendMessage(chatId, inviteText);
+        setMatchProfile(null);
+        router.push(`/chat/${chatId}`);
       }
     }
   };
@@ -374,6 +385,7 @@ export default function DiscoverPage() {
             onClose={() => setMatchProfile(null)}
             onSayHi={handleSayHi}
             onIcebreaker={handleIcebreaker}
+            onInviteToGroup={handleInviteToGroup}
           />
         )}
 
