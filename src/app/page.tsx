@@ -8,13 +8,40 @@ import { motion } from 'framer-motion';
 import { Mail, Ear, HandMetal, UserPlus, LogIn, Lock, ShieldCheck } from 'lucide-react';
 import MobileFrame from '@/components/MobileFrame';
 import useStore from '@/store/useStore';
-import {
-  createUserWithEmailAndPassword,
-  sendEmailVerification,
-  signOut as signOutFirebase,
-  updateProfile,
-} from 'firebase/auth';
-import { firebaseAuth } from '@/lib/firebase';
+
+const FIREBASE_AUTH_BASE = 'https://identitytoolkit.googleapis.com/v1';
+
+function getFirebaseApiKey() {
+  return process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '';
+}
+
+function mapFirebaseAuthError(message: string): string {
+  const code = message.toUpperCase();
+  if (code.includes('EMAIL_EXISTS')) return 'This email is already registered. Try signing in.';
+  if (code.includes('INVALID_EMAIL')) return 'Please enter a valid email address.';
+  if (code.includes('WEAK_PASSWORD')) return 'Password is too weak. Use at least 8 characters.';
+  if (code.includes('OPERATION_NOT_ALLOWED') || code.includes('EMAIL_PASSWORD_LOGIN_DISABLED')) {
+    return 'Email/password sign-in is not enabled in Firebase. Please enable it in Firebase Authentication.';
+  }
+  return 'Could not create account. Please try again.';
+}
+
+async function firebaseRequest<T>(endpoint: string, body: Record<string, unknown>): Promise<T> {
+  const apiKey = getFirebaseApiKey();
+  if (!apiKey) throw new Error('MISSING_API_KEY');
+
+  const response = await fetch(`${FIREBASE_AUTH_BASE}/${endpoint}?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const payload = await response.json();
+  if (!response.ok) {
+    const errorCode = payload?.error?.message || 'UNKNOWN_ERROR';
+    throw new Error(errorCode);
+  }
+  return payload as T;
+}
 
 export default function SplashPage() {
   const router = useRouter();
@@ -57,10 +84,6 @@ export default function SplashPage() {
     if (!normalizedEmail || !password) return;
 
     if (isCreateAccount) {
-      if (!firebaseAuth) {
-        setAuthError('Email auth is currently unavailable. Please use Google sign-in.');
-        return;
-      }
       if (password.length < 8) {
         setAuthError('Password must be at least 8 characters.');
         return;
@@ -72,26 +95,36 @@ export default function SplashPage() {
 
       setSubmitting(true);
       try {
-        const cred = await createUserWithEmailAndPassword(firebaseAuth, normalizedEmail, password);
+        const signUp = await firebaseRequest<{
+          idToken: string;
+        }>('accounts:signUp', {
+          email: normalizedEmail,
+          password,
+          returnSecureToken: true,
+        });
+
         if (safeName) {
-          await updateProfile(cred.user, { displayName: safeName });
+          await firebaseRequest('accounts:update', {
+            idToken: signUp.idToken,
+            displayName: safeName,
+            returnSecureToken: true,
+          });
         }
-        await sendEmailVerification(cred.user);
-        await signOutFirebase(firebaseAuth);
+        await firebaseRequest('accounts:sendOobCode', {
+          requestType: 'VERIFY_EMAIL',
+          idToken: signUp.idToken,
+        });
+
         setAuthMessage('Verification email sent. Verify your email, then sign in.');
         setIsCreateAccount(false);
         setPassword('');
         setConfirmPassword('');
       } catch (error) {
-        const code = (error as { code?: string })?.code || '';
-        if (code.includes('email-already-in-use')) {
-          setAuthError('This email is already registered. Try signing in.');
-        } else if (code.includes('invalid-email')) {
-          setAuthError('Please enter a valid email address.');
-        } else if (code.includes('weak-password')) {
-          setAuthError('Password is too weak. Use at least 8 characters.');
+        const message = (error as Error)?.message || 'UNKNOWN_ERROR';
+        if (message === 'MISSING_API_KEY') {
+          setAuthError('Firebase API key is missing. Check app environment variables.');
         } else {
-          setAuthError('Could not create account. Please try again.');
+          setAuthError(mapFirebaseAuthError(message));
         }
       } finally {
         setSubmitting(false);

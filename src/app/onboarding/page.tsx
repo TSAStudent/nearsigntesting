@@ -415,6 +415,13 @@ export default function OnboardingPage() {
       case 0:
         return (
           <div className="space-y-5">
+            <button
+              type="button"
+              onClick={() => router.push('/')}
+              className="text-xs font-semibold text-sky-700 hover:text-sky-900 transition-colors"
+            >
+              Back to login / sign in
+            </button>
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Preferred name & age</h2>
               <p className="text-gray-500 text-sm">What should we call you? This is how you&apos;ll appear to others.</p>
