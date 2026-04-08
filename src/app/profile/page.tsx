@@ -16,6 +16,9 @@ import { COMMUNICATION_ICONS, COMMUNICATION_LABELS, IDENTITY_LABELS, COMFORT_LAB
 import ColorWheelPicker from '@/components/ColorWheelPicker';
 import type { ThemePreference, LanguagePreference, FontScale } from '@/types';
 
+const DEFAULT_THEME_PREFERENCE: ThemePreference = 'white';
+const DEFAULT_PRIMARY_COLOR = '#0284c7';
+
 export default function ProfilePage() {
   const router = useRouter();
   const { currentUser, updateCurrentUser, highContrastMode, toggleHighContrast, loadFromStorage } = useStore();
@@ -41,8 +44,8 @@ export default function ProfilePage() {
 
   if (!currentUser) return null;
 
-  const themePreference = currentUser.themePreference ?? 'white';
-  const primaryColor = currentUser.primaryColor ?? '#0284c7';
+  const themePreference = currentUser.themePreference ?? DEFAULT_THEME_PREFERENCE;
+  const primaryColor = currentUser.primaryColor ?? DEFAULT_PRIMARY_COLOR;
   const languagePreference = currentUser.languagePreference ?? 'bilingual';
   const fontScale = currentUser.fontScale ?? 'normal';
   const chatPace = currentUser.chatPreferences?.pace ?? 'normal';
@@ -414,6 +417,18 @@ export default function ProfilePage() {
                     size={170}
                   />
                 </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateCurrentUser({
+                      themePreference: DEFAULT_THEME_PREFERENCE,
+                      primaryColor: DEFAULT_PRIMARY_COLOR,
+                    })
+                  }
+                  className="w-full py-2.5 rounded-xl text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                >
+                  Reset to default theme
+                </button>
               </div>
             </div>
 

@@ -170,7 +170,7 @@ export default function ThemeApplier() {
       document.documentElement.style.setProperty('--background', '#000000');
       document.documentElement.style.setProperty('--foreground', '#FFFFFF');
     }
-  }, [currentUser?.themePreference, currentUser?.primaryColor, highContrastMode]);
+  }, [currentUser?.themePreference, currentUser?.primaryColor, currentUser?.fontScale, highContrastMode]);
 
   return null;
 }

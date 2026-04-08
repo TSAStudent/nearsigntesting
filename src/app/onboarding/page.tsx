@@ -71,7 +71,7 @@ export default function OnboardingPage() {
   const [comfortPrefs, setComfortPrefs] = useState<ComfortPreference[]>(onboardingDraft?.comfortPreferences ?? []);
   const [availabilityVibes, setAvailabilityVibes] = useState<AvailabilityVibe[]>(onboardingDraft?.availability ?? []);
   const [preferredName, setPreferredName] = useState(onboardingDraft?.preferredName ?? '');
-  const [ageRange, setAgeRange] = useState(onboardingDraft?.ageRange ?? '');
+  const [ageRange, setAgeRange] = useState(onboardingDraft?.ageRange ?? '13-15');
   const [perfectHangout, setPerfectHangout] = useState(onboardingDraft?.perfectHangout ?? '');
   const [communicationStyle, setCommunicationStyle] = useState(onboardingDraft?.communicationStyle ?? '');
   const [lookingForFriend, setLookingForFriend] = useState(onboardingDraft?.lookingForFriend ?? '');
@@ -114,7 +114,7 @@ export default function OnboardingPage() {
     setShowASLLearners(onboardingDraft.showASLLearners ?? false);
     setAvailabilityVibes(onboardingDraft.availability ?? []);
     setPreferredName(onboardingDraft.preferredName ?? '');
-    setAgeRange(onboardingDraft.ageRange ?? '');
+    setAgeRange(onboardingDraft.ageRange ?? '13-15');
     setPerfectHangout(onboardingDraft.perfectHangout ?? '');
     setCommunicationStyle(onboardingDraft.communicationStyle ?? '');
     setLookingForFriend(onboardingDraft.lookingForFriend ?? '');
@@ -357,7 +357,11 @@ export default function OnboardingPage() {
 
   const handleComplete = () => {
     const userName = preferredName.trim() || session?.user?.name || 'User';
-    const userEmail = session?.user?.email || 'user@example.com';
+    const userEmail = (session?.user?.email ?? currentUser?.email ?? '').trim().toLowerCase();
+    if (!userEmail) {
+      alert('Still finalizing sign-in. Please wait a moment and tap Complete again.');
+      return;
+    }
 
     const profile = {
       id: currentUser?.id || uuidv4(),
