@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { motion } from 'framer-motion';
@@ -19,6 +19,35 @@ import type { ThemePreference, LanguagePreference, FontScale } from '@/types';
 const DEFAULT_THEME_PREFERENCE: ThemePreference = 'white';
 const DEFAULT_PRIMARY_COLOR = '#0284c7';
 
+async function fileToAvatarDataUrl(file: File): Promise<string> {
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('Could not load image.'));
+      img.src = objectUrl;
+    });
+
+    const maxSide = 512;
+    const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+    const width = Math.max(1, Math.round(image.width * scale));
+    const height = Math.max(1, Math.round(image.height * scale));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('Could not process image.');
+    }
+    ctx.drawImage(image, 0, 0, width, height);
+    return canvas.toDataURL('image/jpeg', 0.82);
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const { currentUser, updateCurrentUser, highContrastMode, toggleHighContrast, loadFromStorage } = useStore();
@@ -30,6 +59,9 @@ export default function ProfilePage() {
     lookingForFriend: '',
   });
   const [wyrDraft, setWyrDraft] = useState<Record<string, 'a' | 'b'>>({});
+  const [avatarError, setAvatarError] = useState('');
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     loadFromStorage();
@@ -86,6 +118,28 @@ export default function ProfilePage() {
     router.push('/');
   };
 
+  const handleAvatarFile = async (file: File) => {
+    setAvatarError('');
+    if (!file.type.startsWith('image/')) {
+      setAvatarError('Please select an image file.');
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setAvatarError('Image is too large. Use a file under 8MB.');
+      return;
+    }
+    setAvatarUploading(true);
+    try {
+      const avatarDataUrl = await fileToAvatarDataUrl(file);
+      updateCurrentUser({ avatar: avatarDataUrl });
+    } catch (error) {
+      console.error('Avatar upload failed:', error);
+      setAvatarError('Could not set profile picture. Please try another image.');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
   return (
     <MobileFrame>
       <div
@@ -126,11 +180,26 @@ export default function ProfilePage() {
                 <span className="text-2xl font-bold text-white">{initials}</span>
               )}
               <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
                 className="absolute bottom-0 right-0 p-1.5 rounded-full text-white shadow-lg"
                 style={{ backgroundColor: 'var(--color-primary)' }}
+                aria-label="Change profile photo"
               >
                 <Camera size={12} />
               </button>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  await handleAvatarFile(file);
+                  e.currentTarget.value = '';
+                }}
+              />
             </div>
             <div className="pb-2">
               <h2 className={`text-xl font-bold ${highContrastMode ? 'text-yellow-100' : 'text-gray-900'}`}>
@@ -141,6 +210,16 @@ export default function ProfilePage() {
               >
                 {IDENTITY_LABELS[currentUser.identity]}
               </span>
+              {avatarUploading && (
+                <p className={`text-xs mt-1 ${highContrastMode ? 'text-yellow-300' : 'text-gray-600'}`}>
+                  Updating photo...
+                </p>
+              )}
+              {avatarError && (
+                <p className="text-xs mt-1 text-rose-600">
+                  {avatarError}
+                </p>
+              )}
             </div>
           </div>
         </div>
