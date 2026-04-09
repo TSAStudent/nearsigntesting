@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { signIn } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Mail, Ear, HandMetal, UserPlus, LogIn, Lock, ShieldCheck } from 'lucide-react';
@@ -44,7 +45,9 @@ async function firebaseRequest<T>(endpoint: string, body: Record<string, unknown
 
 export default function SplashPage() {
   const router = useRouter();
-  const { loadFromStorage } = useStore();
+  const { data: session, status } = useSession();
+  const { currentUser, onboardingDraft, loadFromStorage } = useStore();
+  const [authStateReady, setAuthStateReady] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [isCreateAccount, setIsCreateAccount] = useState(true); // true = Create account, false = Sign in
   const [email, setEmail] = useState('');
@@ -60,8 +63,36 @@ export default function SplashPage() {
     loadFromStorage();
   }, [loadFromStorage]);
 
-  // Intentionally do not auto-redirect from splash.
-  // Users should always land on sign in/sign up first.
+  // After sign-in, load account state so we can route correctly.
+  React.useEffect(() => {
+    const email = session?.user?.email?.trim().toLowerCase();
+    if (!email) {
+      setAuthStateReady(false);
+      return;
+    }
+    let active = true;
+    void (async () => {
+      setAuthStateReady(false);
+      await loadFromStorage(email);
+      if (active) setAuthStateReady(true);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [session?.user?.email, loadFromStorage]);
+
+  // Signed-in users with completed onboarding should go directly to Discover.
+  // Otherwise continue onboarding (or start it if no saved onboarding exists yet).
+  React.useEffect(() => {
+    if (status !== 'authenticated' || !authStateReady) return;
+    if (currentUser?.onboardingComplete) {
+      router.replace('/discover');
+      return;
+    }
+    if (onboardingDraft || currentUser || session?.user?.email) {
+      router.replace('/onboarding');
+    }
+  }, [status, authStateReady, currentUser, onboardingDraft, session?.user?.email, router]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,7 +162,6 @@ export default function SplashPage() {
       });
 
       if (result?.ok) {
-        router.push('/onboarding');
         return;
       }
 
@@ -146,7 +176,7 @@ export default function SplashPage() {
   const handleGoogleLogin = (createAccount: boolean) => {
     setAuthError('');
     setAuthMessage('');
-    signIn('google', { callbackUrl: '/onboarding' });
+    signIn('google', { callbackUrl: '/' });
   };
 
   return (
