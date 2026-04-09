@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { Mail, Ear, HandMetal, UserPlus, LogIn, Lock, ShieldCheck } from 'lucide-react';
 import MobileFrame from '@/components/MobileFrame';
 import useStore from '@/store/useStore';
+import { getPublicUserProfileByOwnerId } from '@/lib/userProfiles';
 
 const FIREBASE_AUTH_BASE = 'https://identitytoolkit.googleapis.com/v1';
 
@@ -46,7 +47,7 @@ async function firebaseRequest<T>(endpoint: string, body: Record<string, unknown
 export default function SplashPage() {
   const router = useRouter();
   const { data: session } = useSession();
-  const { loadFromStorage } = useStore();
+  const { loadFromStorage, setCurrentUser } = useStore();
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [isCreateAccount, setIsCreateAccount] = useState(true); // true = Create account, false = Sign in
   const [email, setEmail] = useState('');
@@ -91,13 +92,25 @@ export default function SplashPage() {
         return;
       }
 
+      // Final fallback: read public profile directly for returning users.
+      try {
+        const publicProfile = await getPublicUserProfileByOwnerId(email);
+        if (publicProfile?.onboardingComplete) {
+          setCurrentUser(publicProfile);
+          router.replace('/discover');
+          return;
+        }
+      } catch (error) {
+        console.error('Failed to check public profile during sign-in routing:', error);
+      }
+
       router.replace('/onboarding');
     })();
 
     return () => {
       active = false;
     };
-  }, [session?.user?.email, loadFromStorage, router]);
+  }, [session?.user?.email, loadFromStorage, setCurrentUser, router]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -181,7 +194,8 @@ export default function SplashPage() {
   const handleGoogleLogin = (createAccount: boolean) => {
     setAuthError('');
     setAuthMessage('');
-    signIn('google', { callbackUrl: '/' });
+    // Force account picker so users can choose which Google account to sign in with.
+    signIn('google', { callbackUrl: '/', prompt: 'select_account' });
   };
 
   return (
