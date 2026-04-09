@@ -45,9 +45,8 @@ async function firebaseRequest<T>(endpoint: string, body: Record<string, unknown
 
 export default function SplashPage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
-  const { currentUser, onboardingDraft, loadFromStorage } = useStore();
-  const [authStateReady, setAuthStateReady] = useState(false);
+  const { data: session } = useSession();
+  const { loadFromStorage } = useStore();
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [isCreateAccount, setIsCreateAccount] = useState(true); // true = Create account, false = Sign in
   const [email, setEmail] = useState('');
@@ -67,32 +66,38 @@ export default function SplashPage() {
   React.useEffect(() => {
     const email = session?.user?.email?.trim().toLowerCase();
     if (!email) {
-      setAuthStateReady(false);
       return;
     }
+
     let active = true;
     void (async () => {
-      setAuthStateReady(false);
       await loadFromStorage(email);
-      if (active) setAuthStateReady(true);
+      // Give state updates one tick to settle before deciding route.
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      if (!active) return;
+
+      let { currentUser, onboardingDraft } = useStore.getState();
+
+      if (!currentUser && !onboardingDraft) {
+        // Retry once to avoid races with late profile/doc availability.
+        await loadFromStorage(email);
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        if (!active) return;
+        ({ currentUser, onboardingDraft } = useStore.getState());
+      }
+
+      if (currentUser?.onboardingComplete) {
+        router.replace('/discover');
+        return;
+      }
+
+      router.replace('/onboarding');
     })();
+
     return () => {
       active = false;
     };
-  }, [session?.user?.email, loadFromStorage]);
-
-  // Signed-in users with completed onboarding should go directly to Discover.
-  // Otherwise continue onboarding (or start it if no saved onboarding exists yet).
-  React.useEffect(() => {
-    if (status !== 'authenticated' || !authStateReady) return;
-    if (currentUser?.onboardingComplete) {
-      router.replace('/discover');
-      return;
-    }
-    if (onboardingDraft || currentUser || session?.user?.email) {
-      router.replace('/onboarding');
-    }
-  }, [status, authStateReady, currentUser, onboardingDraft, session?.user?.email, router]);
+  }, [session?.user?.email, loadFromStorage, router]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -40,7 +40,7 @@ const STEPS = [
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const {
     currentUser,
     onboardingDraft,
@@ -92,6 +92,12 @@ export default function OnboardingPage() {
   }, [loadFromStorage]);
 
   useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.replace('/');
+    }
+  }, [status, router]);
+
+  useEffect(() => {
     if (session?.user?.name && !preferredName) {
       setPreferredName(session.user.name);
     }
@@ -136,6 +142,7 @@ export default function OnboardingPage() {
 
   // Persist onboarding progress so users can resume from last completed step.
   useEffect(() => {
+    if (status !== 'authenticated') return;
     if (currentUser?.onboardingComplete) return;
     setOnboardingDraft({
       step,
@@ -190,6 +197,7 @@ export default function OnboardingPage() {
     wouldYouRather,
     setOnboardingDraft,
     currentUser?.onboardingComplete,
+    status,
   ]);
 
   // DFW metroplex center and search area (50 mile radius)
