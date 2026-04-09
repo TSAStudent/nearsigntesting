@@ -210,9 +210,11 @@ export async function sendDirectMessage(
     senderId,
     content: safeContent,
     type,
-    attachments: attachments.length > 0 ? attachments : undefined,
     createdAt: now,
   };
+  if (attachments.length > 0) {
+    message.attachments = attachments;
+  }
 
   // Upsert chat metadata first so Firestore rules that validate participants can pass.
   await setDoc(
