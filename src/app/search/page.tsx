@@ -18,7 +18,13 @@ import {
   COMMUNICATION_LABELS,
   IDENTITY_LABELS,
 } from '@/types';
-import { buildGroupInviteMessage, findMatchChatId, pickProfileAwareIcebreaker } from '@/lib/matchActions';
+import {
+  buildGroupInviteAttachment,
+  buildGroupInviteMessage,
+  findMatchChatId,
+  getMyGroups,
+  pickProfileAwareIcebreaker,
+} from '@/lib/matchActions';
 import { isFirebaseConfigured } from '@/lib/firebase';
 import { getParticipantKey, sendDirectMessage } from '@/lib/chatSync';
 
@@ -179,7 +185,7 @@ export default function SearchPeoplePage() {
     })();
   };
 
-  const handleInviteToGroup = () => {
+  const handleInviteToGroup = (groupId: string) => {
     if (!currentUser) return;
     if (!matchProfile) return;
     void (async () => {
@@ -187,7 +193,10 @@ export default function SearchPeoplePage() {
       const chatId = findMatchChatId(state.chats, matchProfile);
       if (!chatId) return;
       const chat = state.chats.find((c) => c.id === chatId);
-      const inviteText = buildGroupInviteMessage(groups, currentUser);
+      const selectedGroup = groups.find((g) => g.id === groupId && g.members.includes(currentUser.id));
+      if (!selectedGroup) return;
+      const inviteText = buildGroupInviteMessage(selectedGroup);
+      const inviteAttachment = buildGroupInviteAttachment(selectedGroup);
       if (isFirebaseConfigured) {
         try {
           await sendDirectMessage(
@@ -195,14 +204,14 @@ export default function SearchPeoplePage() {
             getParticipantKey(currentUser.email, currentUser.id),
             inviteText,
             'text',
-            [],
+            [inviteAttachment],
             chat?.participants || []
           );
         } catch {
-          state.sendMessage(chatId, inviteText);
+          state.sendMessage(chatId, inviteText, 'text', [inviteAttachment]);
         }
       } else {
-        state.sendMessage(chatId, inviteText);
+        state.sendMessage(chatId, inviteText, 'text', [inviteAttachment]);
       }
       setMatchProfile(null);
       router.push(`/chat/${chatId}`);
@@ -335,17 +344,21 @@ export default function SearchPeoplePage() {
                   aria-label={`View ${profile.name}'s profile`}
                 >
                   <div
-                    className="w-14 h-14 rounded-xl bg-gradient-to-br flex items-center justify-center shrink-0"
+                    className="w-14 h-14 rounded-xl bg-gradient-to-br flex items-center justify-center shrink-0 overflow-hidden"
                     style={{
                       backgroundImage: 'linear-gradient(to bottom right, var(--color-primary-light), var(--color-primary))',
                     }}
                   >
-                    <span className="text-sm font-bold text-white">
-                      {profile.name
-                        .split(' ')
-                        .map((n) => n[0])
-                        .join('')}
-                    </span>
+                    {profile.avatar ? (
+                      <img src={profile.avatar} alt={profile.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-sm font-bold text-white">
+                        {profile.name
+                          .split(' ')
+                          .map((n) => n[0])
+                          .join('')}
+                      </span>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
@@ -428,6 +441,7 @@ export default function SearchPeoplePage() {
             onClose={() => setMatchProfile(null)}
             onSayHi={handleSayHi}
             onIcebreaker={handleIcebreaker}
+            inviteGroups={getMyGroups(groups, currentUser)}
             onInviteToGroup={handleInviteToGroup}
           />
         )}

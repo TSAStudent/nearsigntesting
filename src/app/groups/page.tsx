@@ -14,7 +14,7 @@ import { INTEREST_OPTIONS } from '@/types';
 export default function GroupsPage() {
   const router = useRouter();
   const {
-    currentUser, groups, joinGroup, createGroup,
+    currentUser, groups, joinGroup, leaveGroup, createGroup,
     loadFromStorage, highContrastMode
   } = useStore();
   const { isWarmGradient } = useAppTheme();
@@ -245,16 +245,28 @@ export default function GroupsPage() {
                           )}
                         </div>
                         {isMember ? (
-                          <button
-                            onClick={() => router.push(`/groups/${group.id}`)}
-                            className={`px-4 py-1.5 rounded-xl text-xs font-semibold ${
-                              highContrastMode
-                                ? 'bg-yellow-400/20 text-yellow-300 border border-yellow-400/50'
-                                : 'bg-purple-50 text-purple-600'
-                            }`}
-                          >
-                            Open
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => router.push(`/groups/${group.id}`)}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${
+                                highContrastMode
+                                  ? 'bg-yellow-400/20 text-yellow-300 border border-yellow-400/50'
+                                  : 'bg-purple-50 text-purple-600'
+                              }`}
+                            >
+                              Open
+                            </button>
+                            <button
+                              onClick={() => leaveGroup(group.id)}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${
+                                highContrastMode
+                                  ? 'bg-gray-800 text-gray-300 border border-gray-700'
+                                  : 'bg-gray-100 text-gray-600'
+                              }`}
+                            >
+                              Leave
+                            </button>
+                          </div>
                         ) : (
                           <button
                             onClick={() => {

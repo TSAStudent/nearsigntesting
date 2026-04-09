@@ -114,8 +114,12 @@ export default function ProfileCard({ profile, onConnect, onPass, onSave, isSave
         <div
           className={`relative h-48 bg-gradient-to-br ${avatarPrimaryGradient} flex items-center justify-center`}
         >
-          <div className="w-24 h-24 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-            <span className="text-3xl font-bold text-white">{initials}</span>
+          <div className="w-24 h-24 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center overflow-hidden">
+            {profile.avatar ? (
+              <img src={profile.avatar} alt={profile.name} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-3xl font-bold text-white">{initials}</span>
+            )}
           </div>
           <div className="absolute top-3 right-3 flex items-center gap-2">
             <button

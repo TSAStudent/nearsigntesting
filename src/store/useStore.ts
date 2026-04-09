@@ -33,6 +33,7 @@ interface PersistedState {
   matches: Match[];
   chats: Chat[];
   chatMessages: Record<string, ChatMessage[]>;
+  seenChatTimestamps: Record<string, string>;
   groups: Group[];
   groupMessages: Record<string, GroupMessage[]>;
   events: Event[];
@@ -51,6 +52,7 @@ const DEFAULT_PERSISTED_STATE: PersistedState = {
   matches: [],
   chats: [],
   chatMessages: {},
+  seenChatTimestamps: {},
   groups: [],
   groupMessages: {},
   events: [],
@@ -78,6 +80,7 @@ const getPersistedState = (state: AppState): PersistedState => ({
   matches: state.matches,
   chats: state.chats,
   chatMessages: state.chatMessages,
+  seenChatTimestamps: state.seenChatTimestamps,
   groups: state.groups,
   groupMessages: state.groupMessages,
   events: state.events,
@@ -105,6 +108,7 @@ const parsePersistedState = (value: unknown): PersistedState => {
     matches: data.matches ?? DEFAULT_PERSISTED_STATE.matches,
     chats: data.chats ?? DEFAULT_PERSISTED_STATE.chats,
     chatMessages: data.chatMessages ?? DEFAULT_PERSISTED_STATE.chatMessages,
+    seenChatTimestamps: data.seenChatTimestamps ?? DEFAULT_PERSISTED_STATE.seenChatTimestamps,
     groups: data.groups ?? DEFAULT_PERSISTED_STATE.groups,
     groupMessages: data.groupMessages ?? DEFAULT_PERSISTED_STATE.groupMessages,
     events: data.events ?? DEFAULT_PERSISTED_STATE.events,
@@ -143,6 +147,7 @@ interface AppState {
   // Chats
   chats: Chat[];
   chatMessages: Record<string, ChatMessage[]>;
+  seenChatTimestamps: Record<string, string>;
   sendMessage: (
     chatId: string,
     content: string,
@@ -163,6 +168,7 @@ interface AppState {
     updates: Partial<ChatAttachment>
   ) => void;
   createChat: (participantIds: string[]) => string;
+  markChatSeen: (chatId: string, seenAt?: string) => void;
 
   // Groups
   groups: Group[];
@@ -304,6 +310,7 @@ const useStore = create<AppState>((set, get) => ({
   // Chats
   chats: [],
   chatMessages: {},
+  seenChatTimestamps: {},
   sendMessageAs: (chatId, senderId, content, type = 'text', attachments = []) => {
     const message: ChatMessage = {
       id: uuidv4(),
@@ -382,6 +389,15 @@ const useStore = create<AppState>((set, get) => ({
     }));
     get().saveToStorage();
     return chatId;
+  },
+  markChatSeen: (chatId, seenAt) => {
+    set((state) => ({
+      seenChatTimestamps: {
+        ...state.seenChatTimestamps,
+        [chatId]: seenAt || new Date().toISOString(),
+      },
+    }));
+    get().saveToStorage();
   },
 
   // Groups

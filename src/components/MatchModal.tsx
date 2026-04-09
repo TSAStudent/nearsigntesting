@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, Sparkles, Users } from 'lucide-react';
-import type { DiscoverProfile } from '@/types';
+import type { DiscoverProfile, Group } from '@/types';
 import useStore from '@/store/useStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 
@@ -12,7 +12,8 @@ interface MatchModalProps {
   onClose: () => void;
   onSayHi: () => void;
   onIcebreaker: () => void;
-  onInviteToGroup: () => void;
+  inviteGroups: Group[];
+  onInviteToGroup: (groupId: string) => void;
 }
 
 function Confetti() {
@@ -60,10 +61,12 @@ export default function MatchModal({
   onClose,
   onSayHi,
   onIcebreaker,
+  inviteGroups,
   onInviteToGroup,
 }: MatchModalProps) {
   const highContrastMode = useStore((s) => s.highContrastMode);
   const { isWarmGradient } = useAppTheme();
+  const [showGroupPicker, setShowGroupPicker] = useState(false);
 
   if (!profile) return null;
 
@@ -130,8 +133,12 @@ export default function MatchModal({
             >
               💜
             </motion.div>
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center">
-              <span className="text-lg font-bold text-white">{initials}</span>
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center overflow-hidden">
+              {profile.avatar ? (
+                <img src={profile.avatar} alt={profile.name} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-lg font-bold text-white">{initials}</span>
+              )}
             </div>
           </div>
 
@@ -159,16 +166,39 @@ export default function MatchModal({
               Pick an Icebreaker
             </button>
             <button
-              onClick={onInviteToGroup}
+              onClick={() => setShowGroupPicker((prev) => !prev)}
               className={`w-full py-3 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all ${
                 highContrastMode
-                  ? 'text-gray-500 hover:text-gray-400'
+                  ? 'text-gray-400 hover:text-gray-200'
                   : 'text-gray-400 hover:text-gray-600'
               }`}
             >
               <Users size={18} />
               Invite to a Group
             </button>
+            {showGroupPicker && (
+              <div className="pt-1 space-y-2 max-h-36 overflow-y-auto">
+                {inviteGroups.length === 0 ? (
+                  <p className={`text-xs ${highContrastMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                    Join a group first to send invites.
+                  </p>
+                ) : (
+                  inviteGroups.map((group) => (
+                    <button
+                      key={group.id}
+                      onClick={() => onInviteToGroup(group.id)}
+                      className={`w-full py-2 px-3 rounded-xl text-xs font-semibold text-left ${
+                        highContrastMode
+                          ? 'bg-gray-800 text-yellow-100 border border-yellow-400/30'
+                          : 'bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      {group.name}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         </motion.div>
       </motion.div>

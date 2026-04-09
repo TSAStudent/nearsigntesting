@@ -16,7 +16,7 @@ import type { UserProfile } from '@/types';
 
 export default function ChatListPage() {
   const router = useRouter();
-  const { currentUser, loadFromStorage, highContrastMode, createChat } = useStore();
+  const { currentUser, loadFromStorage, highContrastMode, createChat, markChatSeen } = useStore();
   const { isWarmGradient } = useAppTheme();
   const [remoteChats, setRemoteChats] = useState<RemoteDirectChat[]>([]);
   const [publicProfiles, setPublicProfiles] = useState<UserProfile[]>([]);
@@ -41,6 +41,12 @@ export default function ChatListPage() {
     }
     return subscribeToDirectChatsForParticipant(participantKey, setRemoteChats);
   }, [currentUser, participantKey]);
+
+  useEffect(() => {
+    remoteChats.forEach((chat) => {
+      markChatSeen(chat.id, chat.updatedAt);
+    });
+  }, [remoteChats, markChatSeen]);
 
   useEffect(() => {
     if (!isFirebaseConfigured) {
@@ -69,6 +75,11 @@ export default function ChatListPage() {
   const getParticipantInitials = (otherParticipant: string) => {
     const name = getParticipantName(otherParticipant);
     return name.split(' ').map((n) => n[0]).join('').toUpperCase();
+  };
+
+  const getParticipantAvatar = (otherParticipant: string) => {
+    const profile = profileLookup.get(otherParticipant.trim().toLowerCase());
+    return profile?.avatar?.trim() || '';
   };
 
   const openSignyChat = () => {
@@ -170,10 +181,18 @@ export default function ChatListPage() {
                         : 'bg-white shadow-sm hover:shadow-md'
                   }`}
                 >
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center shrink-0">
-                    <span className="text-sm font-bold text-white">
-                      {getParticipantInitials(otherParticipant)}
-                    </span>
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center shrink-0 overflow-hidden">
+                    {getParticipantAvatar(otherParticipant) ? (
+                      <img
+                        src={getParticipantAvatar(otherParticipant)}
+                        alt={getParticipantName(otherParticipant)}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-sm font-bold text-white">
+                        {getParticipantInitials(otherParticipant)}
+                      </span>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">

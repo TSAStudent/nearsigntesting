@@ -31,7 +31,7 @@ export default function ChatPage() {
   const chatId = params.id as string;
   const {
     currentUser, chats, chatMessages, sendMessage, sendMessageAs, updateMessageAttachment,
-    submitReport, loadFromStorage, highContrastMode
+    submitReport, loadFromStorage, highContrastMode, markChatSeen, joinGroup
   } = useStore();
   const { isWarmGradient } = useAppTheme();
   const [message, setMessage] = useState('');
@@ -116,6 +116,17 @@ export default function ChatPage() {
       unsubMessages();
     };
   }, [chatId, shouldUseRemoteDirectChat]);
+
+  useEffect(() => {
+    if (shouldUseRemoteDirectChat && remoteChat?.updatedAt) {
+      markChatSeen(chatId, remoteChat.updatedAt);
+      return;
+    }
+    const localMessages = chatMessages[chatId] || [];
+    if (localMessages.length > 0) {
+      markChatSeen(chatId, localMessages[localMessages.length - 1].createdAt);
+    }
+  }, [chatId, shouldUseRemoteDirectChat, remoteChat?.updatedAt, chatMessages, markChatSeen]);
 
   useEffect(() => {
     if (!isFirebaseConfigured) {
@@ -451,8 +462,14 @@ export default function ChatPage() {
           <button onClick={() => router.push('/chat')} className="p-1">
             <ArrowLeft size={22} className={highContrastMode ? 'text-yellow-400' : 'text-gray-700'} />
           </button>
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
-            {isSignyChat ? <Bot size={16} className="text-white" /> : <span className="text-xs font-bold text-white">{otherInitials}</span>}
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center overflow-hidden">
+            {isSignyChat ? (
+              <Bot size={16} className="text-white" />
+            ) : otherProfile?.avatar ? (
+              <img src={otherProfile.avatar} alt={otherName} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-xs font-bold text-white">{otherInitials}</span>
+            )}
           </div>
           <div className="flex-1">
             <h2 className={`font-bold text-sm ${highContrastMode ? 'text-yellow-100' : 'text-gray-900'}`}>
@@ -582,6 +599,22 @@ export default function ChatPage() {
                             >
                               {att.label || att.url}
                             </a>
+                          ) : att.kind === 'group_invite' ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!att.groupId) return;
+                                joinGroup(att.groupId);
+                                router.push(`/groups/${att.groupId}`);
+                              }}
+                              className={`text-xs rounded-lg px-3 py-2 font-semibold ${
+                                highContrastMode
+                                  ? 'bg-yellow-400 text-black'
+                                  : 'bg-emerald-500 text-white hover:bg-emerald-600'
+                              }`}
+                            >
+                              {att.label || 'Click to join'}
+                            </button>
                           ) : (
                             <div className="space-y-1">
                               <div className="relative group">

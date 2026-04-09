@@ -1,5 +1,5 @@
 import { ICEBREAKERS } from '@/types';
-import type { Chat, DiscoverProfile, Group, UserProfile } from '@/types';
+import type { Chat, ChatAttachment, DiscoverProfile, Group, UserProfile } from '@/types';
 
 function randomFallbackIcebreaker() {
   return ICEBREAKERS[Math.floor(Math.random() * ICEBREAKERS.length)];
@@ -88,17 +88,21 @@ export function pickProfileAwareIcebreaker(me: UserProfile, other: DiscoverProfi
   return candidates[0].text;
 }
 
-export function buildGroupInviteMessage(groups: Group[], me: UserProfile): string {
-  const myGroups = groups.filter((group) => group.members.includes(me.id));
-  if (myGroups.length === 0) {
-    return 'I want to invite you to one of my groups once I join one!';
-  }
+export function getMyGroups(groups: Group[], me: UserProfile): Group[] {
+  return groups.filter((group) => group.members.includes(me.id));
+}
 
-  const chosen = [...myGroups].sort((a, b) => b.members.length - a.members.length)[0];
-  const groupLink =
-    typeof window !== 'undefined'
-      ? `${window.location.origin}/groups/${chosen.id}`
-      : `/groups/${chosen.id}`;
+export function buildGroupInviteAttachment(group: Group): ChatAttachment {
+  return {
+    id: `${Date.now()}-${group.id}-invite`,
+    kind: 'group_invite',
+    url: `/groups/${group.id}`,
+    label: 'Click to join',
+    groupId: group.id,
+    groupName: group.name,
+  };
+}
 
-  return `Join my group "${chosen.name}" (${chosen.members.length} members): ${groupLink}`;
+export function buildGroupInviteMessage(group: Group): string {
+  return `I invited you to join "${group.name}" (${group.members.length} members).`;
 }

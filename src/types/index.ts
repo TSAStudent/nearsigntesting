@@ -125,10 +125,12 @@ export interface ChatMessage {
 
 export interface ChatAttachment {
   id: string;
-  kind: 'video' | 'link';
+  kind: 'video' | 'link' | 'group_invite';
   url: string;
   label?: string;
   captions?: string;
+  groupId?: string;
+  groupName?: string;
 }
 
 export interface Chat {

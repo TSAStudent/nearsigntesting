@@ -5,6 +5,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Compass, Users, Calendar, MessageCircle, User } from 'lucide-react';
 import useStore from '@/store/useStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { getParticipantKey, subscribeToDirectChatsForParticipant, type RemoteDirectChat } from '@/lib/chatSync';
+import { isFirebaseConfigured } from '@/lib/firebase';
 
 const NAV_ITEMS = [
   { label: 'Discover', icon: Compass, path: '/discover' },
@@ -18,7 +20,32 @@ export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const highContrastMode = useStore((s) => s.highContrastMode);
+  const currentUser = useStore((s) => s.currentUser);
+  const seenChatTimestamps = useStore((s) => s.seenChatTimestamps);
   const { isWarmGradient } = useAppTheme();
+  const [remoteChats, setRemoteChats] = React.useState<RemoteDirectChat[]>([]);
+
+  const participantKey = React.useMemo(
+    () => (currentUser ? getParticipantKey(currentUser.email, currentUser.id) : ''),
+    [currentUser]
+  );
+
+  React.useEffect(() => {
+    if (!currentUser || !isFirebaseConfigured) {
+      setRemoteChats([]);
+      return;
+    }
+    return subscribeToDirectChatsForParticipant(participantKey, setRemoteChats);
+  }, [currentUser, participantKey]);
+
+  const unseenMessageCount = React.useMemo(() => {
+    if (!currentUser) return 0;
+    return remoteChats.filter((chat) => {
+      const seenAt = seenChatTimestamps[chat.id];
+      if (!seenAt) return true;
+      return new Date(chat.updatedAt).getTime() > new Date(seenAt).getTime();
+    }).length;
+  }, [currentUser, remoteChats, seenChatTimestamps]);
 
   return (
     <div
@@ -53,7 +80,18 @@ export default function BottomNav() {
               }`}
               aria-label={item.label}
             >
-              <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+              <div className="relative">
+                <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                {item.path === '/chat' && unseenMessageCount > 0 && (
+                  <span
+                    className={`absolute -right-2 -top-2 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center ${
+                      highContrastMode ? 'bg-yellow-400 text-black' : 'bg-rose-500 text-white'
+                    }`}
+                  >
+                    {unseenMessageCount > 99 ? '99+' : unseenMessageCount}
+                  </span>
+                )}
+              </div>
               <span className={`text-[10px] font-medium ${isActive ? 'font-bold' : ''}`}>
                 {item.label}
               </span>

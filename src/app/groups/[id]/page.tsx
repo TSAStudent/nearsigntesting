@@ -14,7 +14,7 @@ export default function GroupChatPage() {
   const params = useParams();
   const groupId = params.id as string;
   const {
-    currentUser, groups, groupMessages, sendGroupMessage, joinGroup,
+    currentUser, groups, groupMessages, sendGroupMessage, joinGroup, leaveGroup,
     loadFromStorage, highContrastMode
   } = useStore();
   const { isWarmGradient } = useAppTheme();
@@ -146,6 +146,22 @@ export default function GroupChatPage() {
                   ))}
                 </ul>
               </div>
+            )}
+            {isMember && (
+              <button
+                type="button"
+                onClick={() => {
+                  leaveGroup(groupId);
+                  router.push('/groups');
+                }}
+                className={`mt-3 px-3 py-2 rounded-xl text-xs font-semibold ${
+                  highContrastMode
+                    ? 'bg-gray-800 text-gray-300 border border-gray-700'
+                    : 'bg-gray-100 text-gray-700'
+                }`}
+              >
+                Leave Group
+              </button>
             )}
           </div>
         )}

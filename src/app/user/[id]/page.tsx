@@ -11,7 +11,13 @@ import useStore from '@/store/useStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { getDiscoverProfileForViewer } from '@/lib/discoverProfiles';
 import type { DiscoverProfile } from '@/types';
-import { buildGroupInviteMessage, findMatchChatId, pickProfileAwareIcebreaker } from '@/lib/matchActions';
+import {
+  buildGroupInviteAttachment,
+  buildGroupInviteMessage,
+  findMatchChatId,
+  getMyGroups,
+  pickProfileAwareIcebreaker,
+} from '@/lib/matchActions';
 import { isFirebaseConfigured } from '@/lib/firebase';
 import { getParticipantKey, sendDirectMessage } from '@/lib/chatSync';
 
@@ -129,7 +135,7 @@ export default function UserProfilePage() {
     })();
   };
 
-  const handleInviteToGroup = () => {
+  const handleInviteToGroup = (groupId: string) => {
     if (!currentUser) return;
     if (!matchProfile) return;
     void (async () => {
@@ -137,7 +143,10 @@ export default function UserProfilePage() {
       const chatId = findMatchChatId(state.chats, matchProfile);
       if (!chatId) return;
       const chat = state.chats.find((c) => c.id === chatId);
-      const inviteText = buildGroupInviteMessage(groups, currentUser);
+      const selectedGroup = groups.find((g) => g.id === groupId && g.members.includes(currentUser.id));
+      if (!selectedGroup) return;
+      const inviteText = buildGroupInviteMessage(selectedGroup);
+      const inviteAttachment = buildGroupInviteAttachment(selectedGroup);
       if (isFirebaseConfigured) {
         try {
           await sendDirectMessage(
@@ -145,14 +154,14 @@ export default function UserProfilePage() {
             getParticipantKey(currentUser.email, currentUser.id),
             inviteText,
             'text',
-            [],
+            [inviteAttachment],
             chat?.participants || []
           );
         } catch {
-          state.sendMessage(chatId, inviteText);
+          state.sendMessage(chatId, inviteText, 'text', [inviteAttachment]);
         }
       } else {
-        state.sendMessage(chatId, inviteText);
+        state.sendMessage(chatId, inviteText, 'text', [inviteAttachment]);
       }
       setMatchProfile(null);
       router.push(`/chat/${chatId}`);
@@ -259,6 +268,7 @@ export default function UserProfilePage() {
             onClose={() => setMatchProfile(null)}
             onSayHi={handleSayHi}
             onIcebreaker={handleIcebreaker}
+            inviteGroups={getMyGroups(groups, currentUser)}
             onInviteToGroup={handleInviteToGroup}
           />
         )}
