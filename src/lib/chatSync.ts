@@ -202,6 +202,9 @@ export async function sendDirectMessage(
   await ensureFirebaseAnonymousAuth();
   const now = new Date().toISOString();
   const safeContent = content || (attachments.length > 0 ? '[Attachment]' : '');
+  const normalizedParticipants = [
+    ...new Set([senderId, ...participants].map(normalizeParticipant).filter(Boolean)),
+  ].sort();
   const message: Omit<ChatMessage, 'id'> = {
     chatId,
     senderId,
@@ -211,18 +214,18 @@ export async function sendDirectMessage(
     createdAt: now,
   };
 
-  await addDoc(collection(firestore, DIRECT_CHATS_COLLECTION, chatId, 'messages'), message);
+  // Upsert chat metadata first so Firestore rules that validate participants can pass.
   await setDoc(
     doc(firestore, DIRECT_CHATS_COLLECTION, chatId),
     {
-      ...(participants.length > 0
-        ? { participants: [...new Set(participants.map(normalizeParticipant))].sort() }
-        : {}),
+      ...(normalizedParticipants.length > 0 ? { participants: normalizedParticipants } : {}),
+      createdAt: now,
       updatedAt: now,
       lastMessagePreview: safeContent,
     },
     { merge: true }
   );
+  await addDoc(collection(firestore, DIRECT_CHATS_COLLECTION, chatId, 'messages'), message);
 }
 
 export async function updateDirectMessageAttachment(
