@@ -39,6 +39,12 @@ const handler = NextAuth({
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID ?? '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+      authorization: {
+        params: {
+          // Always show account chooser instead of silently reusing last account.
+          prompt: 'select_account',
+        },
+      },
     }),
     CredentialsProvider({
       name: 'Email',
