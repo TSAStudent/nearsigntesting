@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, Send, Sparkles, MoreVertical, Flag, Ban,
-  Calendar, X, Link2, Video, Bot, Captions, Maximize2
+  Calendar, X, Link2, Video, Bot, Captions, Maximize2, Users
 } from 'lucide-react';
 import MobileFrame from '@/components/MobileFrame';
 import useStore from '@/store/useStore';
@@ -24,6 +24,7 @@ import {
 import { subscribeToPublicUserProfiles } from '@/lib/userProfiles';
 import { isFirebaseConfigured } from '@/lib/firebase';
 import type { ChatMessage, UserProfile } from '@/types';
+import { buildGroupInviteAttachment, buildGroupInviteMessage, getMyGroups } from '@/lib/matchActions';
 
 export default function ChatPage() {
   const router = useRouter();
@@ -31,12 +32,13 @@ export default function ChatPage() {
   const chatId = params.id as string;
   const {
     currentUser, chats, chatMessages, sendMessage, sendMessageAs, updateMessageAttachment,
-    submitReport, loadFromStorage, highContrastMode, markChatSeen, joinGroup
+    submitReport, loadFromStorage, highContrastMode, markChatSeen, joinGroup, groups
   } = useStore();
   const { isWarmGradient } = useAppTheme();
   const [message, setMessage] = useState('');
   const [showMenu, setShowMenu] = useState(false);
   const [showIcebreakers, setShowIcebreakers] = useState(false);
+  const [showGroupInvites, setShowGroupInvites] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [showChatPrefs, setShowChatPrefs] = useState(false);
   const [showReportThanks, setShowReportThanks] = useState(false);
@@ -163,6 +165,7 @@ export default function ChatPage() {
     ? 'AI'
     : otherName.split(' ').map((n: string) => n[0]).join('').toUpperCase();
   const messages = shouldUseRemoteDirectChat ? remoteMessages : (chatMessages[chatId] || []);
+  const myGroups = getMyGroups(groups, currentUser);
 
   const askSigny = async (userText: string) => {
     if (!isSignyChat) return;
@@ -253,6 +256,32 @@ export default function ChatPage() {
         console.error('Failed to send remote hangout request:', error);
       });
     }
+  };
+
+  const handleInviteToGroup = async (groupId: string) => {
+    if (isSignyChat) return;
+    const selectedGroup = myGroups.find((g) => g.id === groupId);
+    if (!selectedGroup) return;
+    const inviteText = buildGroupInviteMessage(selectedGroup);
+    const inviteAttachment = buildGroupInviteAttachment(selectedGroup);
+    if (isSignyChat || !shouldUseRemoteDirectChat) {
+      sendMessage(chatId, inviteText, 'text', [inviteAttachment]);
+    } else {
+      try {
+        await sendDirectMessage(
+          chatId,
+          participantKey,
+          inviteText,
+          'text',
+          [inviteAttachment],
+          remoteParticipants
+        );
+      } catch (error) {
+        sendMessage(chatId, inviteText, 'text', [inviteAttachment]);
+        console.error('Failed to send remote group invite:', error);
+      }
+    }
+    setShowGroupInvites(false);
   };
 
   const isValidUrl = (value: string) => {
@@ -749,6 +778,49 @@ export default function ChatPage() {
           </div>
         )}
 
+        {showGroupInvites && !isSignyChat && (
+          <div
+            className={`px-4 py-3 border-t ${
+              highContrastMode
+                ? 'bg-gray-900 border-yellow-400/30'
+                : isWarmGradient
+                  ? 'bg-[color:var(--surface-glass)] backdrop-blur-xl border-t border-sky-200/40'
+                  : 'bg-white border-gray-100'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className={`text-xs font-semibold ${highContrastMode ? 'text-yellow-200' : 'text-gray-700'}`}>
+                Invite to a group
+              </span>
+              <button onClick={() => setShowGroupInvites(false)}>
+                <X size={16} className={highContrastMode ? 'text-gray-500' : 'text-gray-400'} />
+              </button>
+            </div>
+            {myGroups.length === 0 ? (
+              <p className={`text-xs ${highContrastMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                Join a group first to send invites.
+              </p>
+            ) : (
+              <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                {myGroups.map((group) => (
+                  <button
+                    key={group.id}
+                    type="button"
+                    onClick={() => void handleInviteToGroup(group.id)}
+                    className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-colors ${
+                      highContrastMode
+                        ? 'bg-gray-800 text-yellow-100 hover:bg-gray-700'
+                        : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                    }`}
+                  >
+                    {group.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Input */}
         <div
           className={`px-4 py-3 border-t shrink-0 ${
@@ -787,6 +859,20 @@ export default function ChatPage() {
             >
               <Sparkles size={16} />
             </button>
+            {!isSignyChat && (
+              <button
+                onClick={() => {
+                  setShowIcebreakers(false);
+                  setShowGroupInvites((prev) => !prev);
+                }}
+                className={`p-2 rounded-xl ${
+                  highContrastMode ? 'bg-gray-800 text-yellow-400' : 'bg-emerald-50 text-emerald-600'
+                }`}
+                title="Invite to group"
+              >
+                <Users size={16} />
+              </button>
+            )}
             <button
               onClick={handleHangout}
               className={`p-2 rounded-xl ${highContrastMode ? 'bg-gray-800 text-yellow-400' : 'bg-sky-50 text-sky-600'
