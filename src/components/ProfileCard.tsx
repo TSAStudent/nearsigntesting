@@ -162,9 +162,6 @@ export default function ProfileCard({ profile, onConnect, onPass, onSave, isSave
               <span className={`text-sm ${highContrastMode ? 'text-yellow-300' : 'text-[color:var(--color-primary)]'} font-medium`}>
                 {IDENTITY_LABELS[profile.identity]}
               </span>
-              <div className={`text-xs truncate max-w-[14rem] ${highContrastMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                {profile.email}
-              </div>
             </div>
             <div
               className={`flex items-center gap-1 text-sm ${

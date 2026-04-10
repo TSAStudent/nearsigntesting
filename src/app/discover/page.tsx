@@ -425,9 +425,6 @@ export default function DiscoverPage() {
                     <div className={`text-xs mb-1 ${highContrastMode ? 'text-yellow-300' : 'text-[color:var(--color-primary)]'}`}>
                       {IDENTITY_LABELS[profile.identity]}
                     </div>
-                    <div className={`text-[11px] mb-1 truncate ${highContrastMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      {profile.email}
-                    </div>
                     <div className="flex gap-1">
                       {profile.communicationPreferences.map((p) => (
                         <span key={p} className="text-xs" title={COMMUNICATION_LABELS[p]}>

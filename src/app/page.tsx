@@ -11,6 +11,7 @@ import useStore from '@/store/useStore';
 import { getPublicUserProfileByOwnerId } from '@/lib/userProfiles';
 
 const FIREBASE_AUTH_BASE = 'https://identitytoolkit.googleapis.com/v1';
+const AUTH_INTENT_KEY = 'nearsign_auth_intent';
 
 function getFirebaseApiKey() {
   return process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '';
@@ -69,6 +70,10 @@ export default function SplashPage() {
     if (!email) {
       return;
     }
+    if (typeof window !== 'undefined' && window.sessionStorage.getItem(AUTH_INTENT_KEY) !== '1') {
+      // Keep landing screen visible unless user intentionally started auth flow.
+      return;
+    }
 
     let active = true;
     void (async () => {
@@ -88,6 +93,9 @@ export default function SplashPage() {
       }
 
       if (currentUser?.onboardingComplete) {
+        if (typeof window !== 'undefined') {
+          window.sessionStorage.removeItem(AUTH_INTENT_KEY);
+        }
         router.replace('/discover');
         return;
       }
@@ -97,6 +105,9 @@ export default function SplashPage() {
         const publicProfile = await getPublicUserProfileByOwnerId(email);
         if (publicProfile?.onboardingComplete) {
           setCurrentUser(publicProfile);
+          if (typeof window !== 'undefined') {
+            window.sessionStorage.removeItem(AUTH_INTENT_KEY);
+          }
           router.replace('/discover');
           return;
         }
@@ -106,6 +117,9 @@ export default function SplashPage() {
 
       const resumeStep = onboardingDraft?.step ?? 0;
       const safeStep = Number.isFinite(resumeStep) ? Math.max(0, Math.min(8, resumeStep)) : 0;
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.removeItem(AUTH_INTENT_KEY);
+      }
       router.replace(`/onboarding?step=${safeStep}`);
     })();
 
@@ -174,6 +188,9 @@ export default function SplashPage() {
 
     setSubmitting(true);
     try {
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem(AUTH_INTENT_KEY, '1');
+      }
       const result = await signIn('credentials', {
         email: normalizedEmail,
         password,
@@ -196,6 +213,9 @@ export default function SplashPage() {
   const handleGoogleLogin = (createAccount: boolean) => {
     setAuthError('');
     setAuthMessage('');
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem(AUTH_INTENT_KEY, '1');
+    }
     // Force account picker so users can choose which Google account to sign in with.
     signIn('google', { callbackUrl: '/', prompt: 'select_account' });
   };
