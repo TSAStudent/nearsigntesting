@@ -104,7 +104,9 @@ export default function SplashPage() {
         console.error('Failed to check public profile during sign-in routing:', error);
       }
 
-      router.replace('/onboarding');
+      const resumeStep = onboardingDraft?.step ?? 0;
+      const safeStep = Number.isFinite(resumeStep) ? Math.max(0, Math.min(8, resumeStep)) : 0;
+      router.replace(`/onboarding?step=${safeStep}`);
     })();
 
     return () => {

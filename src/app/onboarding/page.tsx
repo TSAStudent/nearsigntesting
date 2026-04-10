@@ -104,6 +104,15 @@ export default function OnboardingPage() {
   }, [session?.user?.name]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const stepFromUrl = Number(params.get('step'));
+    if (!Number.isFinite(stepFromUrl)) return;
+    const safeStep = Math.max(0, Math.min(STEPS.length - 1, stepFromUrl));
+    setStep((prev) => (prev === safeStep ? prev : safeStep));
+  }, []);
+
+  useEffect(() => {
     if (!onboardingDraft || draftHydratedRef.current) return;
 
     setStep(onboardingDraft.step ?? 0);
