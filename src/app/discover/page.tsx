@@ -46,6 +46,7 @@ export default function DiscoverPage() {
     passedProfiles,
     passProfile,
     sendFriendRequest,
+    matches,
     highContrastMode,
     discoverProfiles,
     setDiscoverProfiles,
@@ -131,6 +132,7 @@ export default function DiscoverPage() {
 
   const filteredProfiles = discoverProfiles.filter((p) => {
     if (passedProfiles.includes(p.id)) return false;
+    if (currentUser && matches.some((m) => m.users.includes(currentUser.id) && m.users.includes(p.id))) return false;
     if (p.distance > filters.distanceMax) return false;
     if (filters.communicationMustHave.length > 0) {
       const hasMatch = filters.communicationMustHave.some((c) =>
@@ -148,6 +150,13 @@ export default function DiscoverPage() {
     return true;
   });
 
+  useEffect(() => {
+    setCurrentIndex((prev) => {
+      if (filteredProfiles.length === 0) return 0;
+      return Math.min(prev, filteredProfiles.length - 1);
+    });
+  }, [filteredProfiles.length]);
+
   const handleConnect = useCallback((profile: DiscoverProfile) => {
     sendFriendRequest(profile.id, profile.email);
     setMatchProfile(profile);
@@ -155,8 +164,7 @@ export default function DiscoverPage() {
 
   const handlePass = useCallback((profileId: string) => {
     passProfile(profileId);
-    setCurrentIndex((i) => Math.min(i + 1, filteredProfiles.length - 1));
-  }, [passProfile, filteredProfiles.length]);
+  }, [passProfile]);
 
   const handleSayHi = () => {
     if (matchProfile) {
