@@ -50,6 +50,7 @@ export default function OnboardingPage() {
     loadFromStorage,
   } = useStore();
   const [step, setStep] = useState(onboardingDraft?.step ?? 0);
+  const [initialStateReady, setInitialStateReady] = useState(false);
   const draftHydratedRef = useRef(false);
 
   // Form state
@@ -88,8 +89,20 @@ export default function OnboardingPage() {
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    loadFromStorage();
-  }, [loadFromStorage]);
+    const ownerEmail = session?.user?.email?.trim().toLowerCase();
+    if (!ownerEmail) return;
+    let active = true;
+    setInitialStateReady(false);
+    void (async () => {
+      await loadFromStorage(ownerEmail);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      if (!active) return;
+      setInitialStateReady(true);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [session?.user?.email, loadFromStorage]);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -151,6 +164,7 @@ export default function OnboardingPage() {
 
   // Persist onboarding progress so users can resume from last completed step.
   useEffect(() => {
+    if (!initialStateReady) return;
     if (status !== 'authenticated') return;
     if (currentUser?.onboardingComplete) return;
     setOnboardingDraft({
@@ -207,6 +221,7 @@ export default function OnboardingPage() {
     setOnboardingDraft,
     currentUser?.onboardingComplete,
     status,
+    initialStateReady,
   ]);
 
   // DFW metroplex center and search area (50 mile radius)
