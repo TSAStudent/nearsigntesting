@@ -169,7 +169,7 @@ export default function ProfilePage() {
         <div className="px-6 -mt-12 mb-4 relative z-10">
           <div className={`flex items-end gap-4 ${highContrastMode ? '' : ''}`}>
             <div
-              className="w-24 h-24 rounded-2xl flex items-center justify-center shadow-xl border-4 border-white"
+              className="relative w-24 h-24 rounded-2xl flex items-center justify-center shadow-xl border-4 border-white shrink-0"
               style={{
                 backgroundImage: 'linear-gradient(to bottom right, var(--color-primary-light), var(--color-primary))',
               }}
@@ -182,9 +182,9 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => avatarInputRef.current?.click()}
-                className="absolute bottom-0 right-0 p-1.5 rounded-full text-white shadow-lg"
+                className="absolute -bottom-2 -right-2 p-1.5 rounded-full text-white shadow-lg border-2 border-white"
                 style={{ backgroundColor: 'var(--color-primary)' }}
-                aria-label="Change profile photo"
+                aria-label={currentUser.avatar ? 'Change profile photo' : 'Add profile photo'}
               >
                 <Camera size={12} />
               </button>
@@ -201,7 +201,7 @@ export default function ProfilePage() {
                 }}
               />
             </div>
-            <div className="pb-2">
+            <div className="pb-2 flex-1 min-w-0">
               <h2 className={`text-xl font-bold ${highContrastMode ? 'text-yellow-100' : 'text-gray-900'}`}>
                 {currentUser.name}
               </h2>
@@ -210,24 +210,42 @@ export default function ProfilePage() {
               >
                 {IDENTITY_LABELS[currentUser.identity]}
               </span>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-semibold ${
+                    highContrastMode
+                      ? 'bg-yellow-400 text-black'
+                      : 'bg-sky-100 text-sky-800 hover:bg-sky-200'
+                  }`}
+                >
+                  <Camera size={12} />
+                  {currentUser.avatar ? 'Change photo' : 'Add photo'}
+                </button>
+                {currentUser.avatar && (
+                  <button
+                    type="button"
+                    onClick={() => updateCurrentUser({ avatar: '' })}
+                    className={`text-xs px-3 py-1.5 rounded-full font-semibold transition-colors ${
+                      highContrastMode
+                        ? 'bg-gray-800 text-gray-200 border border-gray-700'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Remove photo
+                  </button>
+                )}
+              </div>
               {avatarUploading && (
-                <p className={`text-xs mt-1 ${highContrastMode ? 'text-yellow-300' : 'text-gray-600'}`}>
+                <p className={`text-xs mt-2 ${highContrastMode ? 'text-yellow-300' : 'text-gray-600'}`}>
                   Updating photo...
                 </p>
               )}
               {avatarError && (
-                <p className="text-xs mt-1 text-rose-600">
+                <p className="text-xs mt-2 text-rose-600">
                   {avatarError}
                 </p>
-              )}
-              {currentUser.avatar && (
-                <button
-                  type="button"
-                  onClick={() => updateCurrentUser({ avatar: '' })}
-                  className="text-xs mt-1 font-semibold text-sky-700 hover:text-sky-900 transition-colors"
-                >
-                  Remove photo
-                </button>
               )}
             </div>
           </div>
